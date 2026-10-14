@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,6 +13,9 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   AlertCircle,
+  UploadCloud,
+  Loader2,
+  Star,
 } from "lucide-react";
 
 interface CategoryOption {
@@ -105,6 +108,60 @@ export function ProductForm({
   const [newImageUrl, setNewImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("files", files[i]);
+      }
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload image(s).");
+      }
+
+      const newUrls: string[] = data.urls || (data.url ? [data.url] : []);
+      if (newUrls.length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          images: [...prev.images.filter(Boolean), ...newUrls],
+        }));
+      }
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to upload image.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const setPrimaryImage = (index: number) => {
+    setForm((prev) => {
+      const images = [...prev.images.filter(Boolean)];
+      if (index >= 0 && index < images.length) {
+        const [selected] = images.splice(index, 1);
+        images.unshift(selected);
+      }
+      return { ...prev, images };
+    });
+  };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -424,58 +481,169 @@ export function ProductForm({
         </div>
 
         {/* Card 3: Images */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              Product Images
-            </h3>
-            <span className="text-xs text-slate-400">First image will be the primary thumbnail</span>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-brand-600" />
+                <span>Product Images</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Upload image files directly from your computer or provide image URLs
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-lg">
+              {form.images.filter(Boolean).length} {form.images.filter(Boolean).length === 1 ? "Image" : "Images"}
+            </span>
           </div>
 
-          {/* Add Image input */}
-          <div className="flex gap-2">
-            <input
-              type="url"
-              placeholder="Paste public image URL (e.g. Unsplash or CDN URL)..."
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500 focus:bg-white"
-            />
-            <button
-              type="button"
-              onClick={addImage}
-              className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors"
-            >
-              Add URL
-            </button>
+          {uploadError && (
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{uploadError}</span>
+            </div>
+          )}
+
+          {/* Hidden direct file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,image/avif"
+            className="hidden"
+          />
+
+          {/* Direct File Upload Dropzone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2.5 ${
+              isUploading
+                ? "border-brand-400 bg-brand-50/50 cursor-wait"
+                : "border-slate-300 hover:border-brand-500 hover:bg-slate-50/80 active:scale-[0.99]"
+            }`}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
+                <span className="text-xs font-bold text-slate-800">Uploading your image(s)...</span>
+                <span className="text-[11px] text-slate-400">Processing and saving directly to storage</span>
+              </>
+            ) : (
+              <>
+                <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center shadow-xs">
+                  <UploadCloud className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-xs sm:text-sm font-black text-slate-800 block">
+                    Click to browse and upload product images directly
+                  </span>
+                  <span className="text-[11px] text-slate-400 mt-0.5 block">
+                    Supports JPG, PNG, WEBP, GIF, SVG (up to 10MB each). Multiple images supported.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  className="mt-1 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-colors"
+                >
+                  Choose Image Files
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Alternative: Add Image by URL */}
+          <div className="space-y-1.5 pt-2">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+              Or paste image URL
+            </span>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                placeholder="https://example.com/product-image.jpg"
+                value={newImageUrl}
+                onChange={(e) => setNewImageUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addImage();
+                  }
+                }}
+                className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500 focus:bg-white"
+              />
+              <button
+                type="button"
+                onClick={addImage}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors shrink-0"
+              >
+                Add URL
+              </button>
+            </div>
           </div>
 
           {/* Thumbnails preview grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-            {form.images.map((img, idx) => {
-              if (!img) return null;
-              return (
-                <div
-                  key={idx}
-                  className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-square"
-                >
-                  <Image src={img} alt="Product image" fill className="object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(idx)}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Remove Image"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                  {idx === 0 && (
-                    <span className="absolute bottom-2 left-2 bg-brand-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
-                      Primary
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+          <div className="pt-2">
+            <span className="text-xs font-bold text-slate-700 block mb-2.5">
+              Current Images ({form.images.filter(Boolean).length})
+            </span>
+
+            {form.images.filter(Boolean).length === 0 ? (
+              <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200/60 text-center text-slate-400 text-xs">
+                No images added yet. Click &ldquo;Choose Image Files&rdquo; above to upload directly!
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {form.images.map((img, idx) => {
+                  if (!img) return null;
+                  return (
+                    <div
+                      key={idx}
+                      className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-square shadow-xs"
+                    >
+                      <Image
+                        src={img}
+                        alt={`Product image ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        unoptimized={img.startsWith("/uploads/")}
+                      />
+
+                      {/* Hover action overlay */}
+                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                        {idx !== 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setPrimaryImage(idx)}
+                            className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-slate-900 transition-colors"
+                            title="Make Primary Thumbnail"
+                          >
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="p-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition-colors"
+                          title="Remove Image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {idx === 0 && (
+                        <span className="absolute bottom-2 left-2 bg-brand-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 

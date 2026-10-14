@@ -32,6 +32,7 @@ export function ProductCard({ product }: { product: ProductItem }) {
   const { addItem } = useCart();
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
 
   const price = product.salePrice ?? product.regularPrice;
   const hasDiscount = product.salePrice !== null && product.salePrice < product.regularPrice;
@@ -71,7 +72,27 @@ export function ProductCard({ product }: { product: ProductItem }) {
 
   return (
     <>
-      <div className="group relative bg-white rounded-2xl border border-slate-200/80 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-900/5 transition-all duration-300 flex flex-col overflow-hidden">
+      <div
+        onClick={() => setIsSelected((prev) => !prev)}
+        className={`group relative bg-white rounded-2xl border-2 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer ${
+          isSelected
+            ? "border-red-500 shadow-xl shadow-red-500/15"
+            : "border-slate-200/80 hover:border-red-500 hover:shadow-xl hover:shadow-red-500/15"
+        }`}
+      >
+        {/* Red Light Border & Corner Effect on Hover / Selection */}
+        <div
+          className={`corner-glow-container transition-all duration-200 pointer-events-none group-hover:opacity-100 group-hover:scale-100 ${
+            isSelected ? "opacity-100 scale-100" : "opacity-0 scale-95"
+          }`}
+          aria-hidden="true"
+        >
+          <div className="corner-light corner-light-tl" />
+          <div className="corner-light corner-light-tr" />
+          <div className="corner-light corner-light-bl" />
+          <div className="corner-light corner-light-br" />
+        </div>
+
         {/* Badges */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
           {hasDiscount && (

@@ -8,7 +8,7 @@ import { Zap, Lock, User, AlertCircle, ArrowRight } from "lucide-react";
 export default function AdminLoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,13 +45,12 @@ export default function AdminLoginPage() {
       <div className="relative z-10 w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 group mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-xl shadow-brand-600/30 group-hover:scale-105 transition-transform">
-              <Zap className="w-6 h-6 fill-white" />
-            </div>
-            <div className="text-2xl font-black text-white">
-              Swift<span className="text-brand-500">Cart</span>
-            </div>
+          <Link href="/" className="inline-block group mb-4">
+            <img
+              src="/logo-white.png"
+              alt="Swift Cart"
+              className="h-14 w-auto mx-auto object-contain transition-transform group-hover:scale-105"
+            />
           </Link>
           <h1 className="text-xl font-bold text-white tracking-tight">Merchant Administration</h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -103,7 +102,19 @@ export default function AdminLoginPage() {
 
             {/* Default Credentials Helper */}
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400">
-              <span className="font-bold text-slate-300">Default Demo Credentials:</span>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-300">Initial Default Credentials:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsername("admin");
+                    setPassword("admin123");
+                  }}
+                  className="text-[10px] font-bold text-brand-400 hover:text-brand-300 underline"
+                >
+                  Autofill Default
+                </button>
+              </div>
               <div className="mt-1 flex items-center justify-between font-mono text-slate-400">
                 <span>Username: <strong className="text-brand-400">admin</strong></span>
                 <span>Password: <strong className="text-brand-400">admin123</strong></span>

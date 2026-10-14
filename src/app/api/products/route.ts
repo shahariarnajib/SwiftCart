@@ -12,7 +12,10 @@ export async function GET(req: Request) {
     const isNew = searchParams.get("new");
     const status = searchParams.get("status") || "ACTIVE";
     const sort = searchParams.get("sort") || "newest";
+    const pageParam = searchParams.get("page");
+    const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : undefined;
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : undefined;
+    const skip = page && limit ? (page - 1) * limit : undefined;
 
     const where: Record<string, any> = {};
 
@@ -57,21 +60,42 @@ export async function GET(req: Request) {
       orderBy = { name: "asc" };
     }
 
-    const products = await prisma.product.findMany({
-      where,
-      orderBy,
-      take: limit,
-      include: {
-        category: {
-          select: { id: true, name: true, slug: true },
+    const [total, products] = await Promise.all([
+      prisma.product.count({ where }),
+      prisma.product.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: {
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
+          images: {
+            orderBy: { orderIndex: "asc" },
+          },
         },
-        images: {
-          orderBy: { orderIndex: "asc" },
+      }),
+    ]);
+
+    if (searchParams.get("format") === "paginated" || searchParams.get("page")) {
+      return NextResponse.json({
+        products,
+        pagination: {
+          total,
+          page: page || 1,
+          limit: limit || total,
+          totalPages: limit ? Math.ceil(total / limit) : 1,
         },
+      });
+    }
+
+    return NextResponse.json(products, {
+      headers: {
+        "X-Total-Count": total.toString(),
+        "X-Total-Pages": (limit ? Math.ceil(total / limit) : 1).toString(),
       },
     });
-
-    return NextResponse.json(products);
   } catch (error) {
     console.error("Failed to fetch products:", error);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });

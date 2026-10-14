@@ -37,7 +37,7 @@ export default function AboutPage() {
             status quo.
           </p>
           <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-            Operating from our central fulfillment hub in Banani, Dhaka, we handpick every product,
+            Operating from our central fulfillment hub in Chawkbazar, Chittagong, Bangladesh, we handpick every product,
             audit manufacturing serial numbers, and inspect packaging before sending it out with trusted
             courier partners across all 64 districts.
           </p>
@@ -53,7 +53,7 @@ export default function AboutPage() {
             </div>
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
               <span className="text-2xl font-black text-brand-600">24-48h</span>
-              <p className="text-xs text-slate-500 font-bold mt-1">Dhaka Dispatch Speed</p>
+              <p className="text-xs text-slate-500 font-bold mt-1">Express Dispatch Speed</p>
             </div>
           </div>
         </div>

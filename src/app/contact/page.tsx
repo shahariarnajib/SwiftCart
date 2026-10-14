@@ -25,7 +25,7 @@ export default function ContactPage() {
           </h1>
           <p className="text-sm text-slate-600">
             Have questions about an existing order, product specifications, or wholesale bulk requests?
-            Our Banani customer care team is here to assist you.
+            Our customer care team is here to assist you.
           </p>
         </div>
 
@@ -45,9 +45,9 @@ export default function ContactPage() {
                   <div>
                     <h3 className="text-xs font-bold text-slate-400 uppercase">Office & Warehouse</h3>
                     <p className="text-sm font-semibold text-slate-900 mt-0.5">
-                      House 42, Road 11, Banani
+                      Chawkbazar
                     </p>
-                    <p className="text-xs text-slate-500">Dhaka-1213, Bangladesh</p>
+                    <p className="text-xs text-slate-500">Chittagong, Bangladesh</p>
                   </div>
                 </div>
 
@@ -57,7 +57,14 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-slate-400 uppercase">Customer Hotline</h3>
-                    <p className="text-sm font-semibold text-slate-900 mt-0.5">+880 1712-345678</p>
+                    <a
+                      href="https://wa.me/8801925613994"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold text-slate-900 hover:text-emerald-600 transition-colors mt-0.5 block"
+                    >
+                      +8801925613994
+                    </a>
                     <p className="text-xs text-slate-500">WhatsApp & Direct Calls</p>
                   </div>
                 </div>

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { formatCurrency, formatDate, ORDER_STATUS_CONFIG } from "@/lib/format";
 import {
   Search,
@@ -15,11 +16,12 @@ import {
   AlertCircle,
   Truck,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 interface OrderItemData {
   id: string;
-  productId: string;
+  productId: string | null;
   productName: string;
   productSku: string;
   price: number;
@@ -103,6 +105,31 @@ export function OrdersClient({
       alert("Error updating order status");
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this order?")) return;
+    setIsDeletingOrder(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to delete order");
+      } else {
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder(null);
+        }
+        setStatusSuccessMsg("Order permanently deleted.");
+        setTimeout(() => setStatusSuccessMsg(null), 3000);
+      }
+    } catch {
+      alert("Error deleting order");
+    } finally {
+      setIsDeletingOrder(false);
     }
   };
 
@@ -215,14 +242,30 @@ export function OrdersClient({
                       </td>
                       <td className="px-6 py-4 text-slate-400">{formatDate(ord.createdAt)}</td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedOrder(ord)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition-colors"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View Details</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/admin/orders/${ord.id}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold transition-colors"
+                          >
+                            <span>Manage</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrder(ord)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Quick View</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteOrder(ord.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -371,6 +414,25 @@ export function OrdersClient({
                   {formatCurrency(selectedOrder.total)}
                 </span>
               </div>
+            </div>
+
+            {/* Order Drawer Action Bar */}
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+              <Link
+                href={`/admin/orders/${selectedOrder.id}`}
+                className="text-xs font-bold text-brand-600 hover:text-brand-700"
+              >
+                View Full Invoice & Details →
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleDeleteOrder(selectedOrder.id)}
+                disabled={isDeletingOrder}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Order</span>
+              </button>
             </div>
           </div>
         </div>

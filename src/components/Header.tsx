@@ -8,10 +8,7 @@ import {
   Search,
   Menu,
   X,
-  Phone,
-  ShieldCheck,
   ChevronDown,
-  User,
   Zap,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -71,32 +68,6 @@ export function Header() {
 
   return (
     <>
-      {/* Top Banner Notice */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-            <span>Free Express Delivery across Bangladesh on orders over ৳2,500!</span>
-          </div>
-          <div className="hidden md:flex items-center gap-6 text-slate-400">
-            <span className="flex items-center gap-1.5 hover:text-white transition-colors">
-              <Phone className="w-3.5 h-3.5 text-brand-500" />
-              <span>+880 1712-345678</span>
-            </span>
-            <span className="flex items-center gap-1.5 hover:text-white transition-colors">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>100% Genuine Products</span>
-            </span>
-            <Link
-              href="/admin"
-              className="text-xs text-brand-400 hover:text-brand-300 transition-colors font-medium border-l border-slate-700 pl-4"
-            >
-              Merchant Admin
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Main Sticky Header */}
       <header
         className={`sticky top-0 z-40 bg-white transition-all duration-200 ${
@@ -119,18 +90,11 @@ export function Header() {
 
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30 group-hover:scale-105 transition-transform duration-200">
-                <Zap className="w-5 h-5 fill-white text-white" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center text-2xl font-black tracking-tight">
-                  <span className="text-slate-900">Swift</span>
-                  <span className="text-brand-600 ml-1">Cart</span>
-                </div>
-                <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold -mt-1 hidden sm:block">
-                  Fast • Reliable • Authentic
-                </span>
-              </div>
+              <img
+                src="/logo.png"
+                alt="Swift Cart"
+                className="h-10 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              />
             </Link>
 
             {/* Desktop Navigation Links */}
@@ -294,12 +258,11 @@ export function Header() {
           <div className="relative flex flex-col w-full max-w-xs bg-white h-full shadow-2xl z-10 p-6 overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white">
-                  <Zap className="w-4 h-4 fill-white" />
-                </div>
-                <span className="text-xl font-black text-slate-900">
-                  Swift<span className="text-brand-600">Cart</span>
-                </span>
+                <img
+                  src="/logo.png"
+                  alt="Swift Cart"
+                  className="h-9 w-auto object-contain"
+                />
               </div>
               <button
                 type="button"
@@ -370,15 +333,15 @@ export function Header() {
             </div>
 
             <div className="mt-auto pt-6 border-t border-slate-100 space-y-3">
-              <Link
-                href="/admin"
-                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors"
-              >
-                <User className="w-4 h-4" />
-                <span>Admin Portal</span>
-              </Link>
               <div className="text-center text-xs text-slate-400">
-                Hotline: +880 1712-345678
+                <a
+                  href="https://wa.me/8801925613994"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-500 font-semibold transition-colors"
+                >
+                  WhatsApp & Hotline: +8801925613994
+                </a>
               </div>
             </div>
           </div>

@@ -3,13 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const revalidate = 30;
 
 interface CategoryPageProps {
   params: { slug: string };
-  searchParams: { sort?: string };
+  searchParams: { sort?: string; page?: string };
 }
 
 export async function generateMetadata({ params }: CategoryPageProps) {
@@ -26,7 +26,9 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const { slug } = params;
-  const { sort = "newest" } = searchParams;
+  const { sort = "newest", page: pageStr } = searchParams;
+  const page = Math.max(1, parseInt(pageStr || "1", 10));
+  const pageSize = 12;
 
   const category = await prisma.category.findUnique({
     where: { slug },
@@ -45,17 +47,34 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     orderBy = { name: "asc" };
   }
 
-  const products = await prisma.product.findMany({
-    where: {
-      categoryId: category.id,
-      status: "ACTIVE",
-    },
-    orderBy,
-    include: {
-      category: true,
-      images: { orderBy: { orderIndex: "asc" } },
-    },
-  });
+  const where = {
+    categoryId: category.id,
+    status: "ACTIVE",
+  };
+
+  const [totalCategoryProducts, products] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        category: true,
+        images: { orderBy: { orderIndex: "asc" } },
+      },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalCategoryProducts / pageSize) || 1;
+
+  const createCategoryPageUrl = (targetPage: number) => {
+    const p = new URLSearchParams();
+    if (sort && sort !== "newest") p.set("sort", sort);
+    if (targetPage > 1) p.set("page", targetPage.toString());
+    const qs = p.toString();
+    return `/category/${slug}${qs ? `?${qs}` : ""}`;
+  };
 
   return (
     <div className="bg-slate-50/50 min-h-screen py-8 sm:py-12">
@@ -133,11 +152,81 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((prod) => (
-              <ProductCard key={prod.id} product={prod} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.map((prod) => (
+                <ProductCard key={prod.id} product={prod} />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-10 pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-xs font-semibold text-slate-500">
+                  Page {page} of {totalPages} ({totalCategoryProducts} items in {category.name})
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {page > 1 ? (
+                    <Link
+                      href={createCategoryPageUrl(page - 1)}
+                      className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-300 cursor-not-allowed flex items-center gap-1">
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </span>
+                  )}
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (p) =>
+                        p === 1 ||
+                        p === totalPages ||
+                        (p >= page - 2 && p <= page + 2)
+                    )
+                    .map((p, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const showEllipsis = prev && p - prev > 1;
+                      return (
+                        <React.Fragment key={p}>
+                          {showEllipsis && (
+                            <span className="px-1 text-slate-400 text-xs">...</span>
+                          )}
+                          <Link
+                            href={createCategoryPageUrl(p)}
+                            className={`w-8 h-8 text-xs font-bold rounded-xl flex items-center justify-center transition-colors ${
+                              p === page
+                                ? "bg-brand-600 text-white shadow-sm"
+                                : "border border-slate-200 text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            {p}
+                          </Link>
+                        </React.Fragment>
+                      );
+                    })}
+
+                  {page < totalPages ? (
+                    <Link
+                      href={createCategoryPageUrl(page + 1)}
+                      className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-1"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-300 cursor-not-allowed flex items-center gap-1">
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

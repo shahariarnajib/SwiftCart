@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
-import { Search, Filter, SlidersHorizontal, RefreshCcw } from "lucide-react";
+import { Search, Filter, SlidersHorizontal, RefreshCcw, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const revalidate = 30;
 
@@ -14,11 +14,14 @@ interface ShopPageProps {
     stock?: string;
     featured?: string;
     new?: string;
+    page?: string;
   };
 }
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
-  const { q, category, sort = "newest", stock, featured, new: isNew } = searchParams;
+  const { q, category, sort = "newest", stock, featured, new: isNew, page: pageStr } = searchParams;
+  const page = Math.max(1, parseInt(pageStr || "1", 10));
+  const pageSize = 12;
 
   // Build Prisma filter
   const where: Record<string, any> = {
@@ -59,10 +62,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     orderBy = { name: "asc" };
   }
 
-  const [products, categories, totalActiveCount] = await Promise.all([
+  const [filteredCount, products, categories, totalActiveCount] = await Promise.all([
+    prisma.product.count({ where }),
     prisma.product.findMany({
       where,
       orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       include: {
         category: true,
         images: { orderBy: { orderIndex: "asc" } },
@@ -79,6 +85,21 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     }),
     prisma.product.count({ where: { status: "ACTIVE" } }),
   ]);
+
+  const totalPages = Math.ceil(filteredCount / pageSize) || 1;
+
+  const createPageUrl = (targetPage: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (category) params.set("category", category);
+    if (sort && sort !== "newest") params.set("sort", sort);
+    if (stock) params.set("stock", stock);
+    if (featured) params.set("featured", featured);
+    if (isNew) params.set("new", isNew);
+    if (targetPage > 1) params.set("page", targetPage.toString());
+    const qs = params.toString();
+    return `/shop${qs ? `?${qs}` : ""}`;
+  };
 
   return (
     <div className="bg-slate-50/50 min-h-screen py-8 sm:py-12">
@@ -98,7 +119,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 {q ? `Search results for "${q}"` : "Explore All Products"}
               </h1>
               <p className="text-sm text-slate-500 mt-1">
-                Showing {products.length} of {totalActiveCount} genuine items in Bangladesh
+                Showing {filteredCount > 0 ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filteredCount)} of {filteredCount} authentic products ({totalActiveCount} total catalog)
               </p>
             </div>
 
@@ -268,11 +289,81 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((prod) => (
-                  <ProductCard key={prod.id} product={prod} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {products.map((prod) => (
+                    <ProductCard key={prod.id} product={prod} />
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-10 pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-xs font-semibold text-slate-500">
+                      Page {page} of {totalPages} ({filteredCount} total matching items)
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      {page > 1 ? (
+                        <Link
+                          href={createPageUrl(page - 1)}
+                          className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-1"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                          <span>Prev</span>
+                        </Link>
+                      ) : (
+                        <span className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-300 cursor-not-allowed flex items-center gap-1">
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                          <span>Prev</span>
+                        </span>
+                      )}
+
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(
+                          (p) =>
+                            p === 1 ||
+                            p === totalPages ||
+                            (p >= page - 2 && p <= page + 2)
+                        )
+                        .map((p, idx, arr) => {
+                          const prev = arr[idx - 1];
+                          const showEllipsis = prev && p - prev > 1;
+                          return (
+                            <React.Fragment key={p}>
+                              {showEllipsis && (
+                                <span className="px-1 text-slate-400 text-xs">...</span>
+                              )}
+                              <Link
+                                href={createPageUrl(p)}
+                                className={`w-8 h-8 text-xs font-bold rounded-xl flex items-center justify-center transition-colors ${
+                                  p === page
+                                    ? "bg-brand-600 text-white shadow-sm"
+                                    : "border border-slate-200 text-slate-700 hover:bg-slate-100"
+                                }`}
+                              >
+                                {p}
+                              </Link>
+                            </React.Fragment>
+                          );
+                        })}
+
+                      {page < totalPages ? (
+                        <Link
+                          href={createPageUrl(page + 1)}
+                          className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-1"
+                        >
+                          <span>Next</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      ) : (
+                        <span className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-300 cursor-not-allowed flex items-center gap-1">
+                          <span>Next</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </main>
         </div>

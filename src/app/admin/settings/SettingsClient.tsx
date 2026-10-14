@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Save, CheckCircle2, AlertCircle, Store, Truck, Phone, Settings } from "lucide-react";
+import { Save, CheckCircle2, AlertCircle, Store, Truck, Phone, Settings, Lock, Key, ShieldCheck } from "lucide-react";
 
 interface SettingsMap {
   [key: string]: string;
@@ -12,8 +12,61 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Admin password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
   const handleChange = (key: string, val: string) => {
     setSettings((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("All password fields are required.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirm password do not match.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await fetch("/api/admin/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to change password.");
+      }
+
+      setPasswordSuccess(data.message || "Password changed successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSuccess(null), 5000);
+    } catch (err: any) {
+      setPasswordError(err.message || "Failed to update password.");
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -40,10 +93,11 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
   };
 
   return (
-    <form onSubmit={handleSave} className="space-y-8 max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Store Settings</h2>
+    <div className="space-y-10 max-w-4xl">
+      <form onSubmit={handleSave} className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Store Settings</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Configure store branding, contact information, and delivery parameters
           </p>
@@ -183,11 +237,11 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
-                Support Phone / Hotline
+                Support Phone / WhatsApp Hotline
               </label>
               <input
                 type="text"
-                value={settings["contact_phone"] || "+880 1712-345678"}
+                value={settings["contact_phone"] || "+8801925613994"}
                 onChange={(e) => handleChange("contact_phone", e.target.value)}
                 className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500"
               />
@@ -211,7 +265,7 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
                 rows={2}
                 value={
                   settings["store_address"] ||
-                  "House 42, Road 11, Banani, Dhaka-1213, Bangladesh"
+                  "Chawkbazar, Chittagong, Bangladesh"
                 }
                 onChange={(e) => handleChange("store_address", e.target.value)}
                 className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500 resize-none"
@@ -221,5 +275,106 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
         </div>
       </div>
     </form>
+
+      {/* Admin Security & Password Change Card */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-brand-600" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Admin Panel Security & Password
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Update your administrator login password to protect your admin dashboard
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg flex items-center gap-1 border border-emerald-200">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Encrypted (bcrypt)</span>
+          </span>
+        </div>
+
+        {passwordSuccess && (
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{passwordSuccess}</span>
+          </div>
+        )}
+
+        {passwordError && (
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{passwordError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Current Admin Password *
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="Enter current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                New Password *
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="Min 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Confirm New Password *
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="Re-type new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500 font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-[11px] text-slate-400">
+              Tip: The initial default password is <code className="text-slate-700 font-bold">admin123</code>.
+            </p>
+
+            <button
+              type="submit"
+              disabled={isChangingPassword}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+            >
+              {isChangingPassword ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Key className="w-4 h-4 text-brand-400" />
+              )}
+              <span>Change Admin Password</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

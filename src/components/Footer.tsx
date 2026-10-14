@@ -55,13 +55,12 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30">
-                <Zap className="w-5 h-5 fill-white text-white" />
-              </div>
-              <div className="flex items-center text-2xl font-black tracking-tight text-white">
-                Swift<span className="text-brand-500">Cart</span>
-              </div>
+            <Link href="/" className="inline-block group">
+              <img
+                src="/logo-white.png"
+                alt="Swift Cart"
+                className="h-11 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              />
             </Link>
             <p className="text-sm text-slate-400 max-w-sm leading-relaxed">
               Swift Cart is Bangladesh&apos;s modern online shopping destination. Delivering premium
@@ -126,11 +125,6 @@ export function Footer() {
                   Shipping & Delivery Info
                 </Link>
               </li>
-              <li>
-                <Link href="/admin/login" className="hover:text-brand-400 transition-colors">
-                  Admin Login
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -140,11 +134,18 @@ export function Footer() {
             <ul className="space-y-3 text-sm text-slate-400">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-brand-500 shrink-0 mt-1" />
-                <span>House 42, Road 11, Banani, Dhaka-1213, Bangladesh</span>
+                <span>Chawkbazar, Chittagong, Bangladesh</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-brand-500 shrink-0" />
-                <span>+880 1712-345678</span>
+                <a
+                  href="https://wa.me/8801925613994"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-400 transition-colors"
+                >
+                  +8801925613994 (WhatsApp)
+                </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-brand-500 shrink-0" />

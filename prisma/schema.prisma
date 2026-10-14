@@ -7,50 +7,102 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  username     String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
+  username     String    @unique
   passwordHash String
   name         String
-  role         String   @default("ADMIN")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         String    @default("SUPER_ADMIN") // SUPER_ADMIN, ORDER_MANAGER, PRODUCT_MANAGER, CONTENT_MANAGER
+  status       String    @default("ACTIVE")      // ACTIVE, INACTIVE
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  logs         AdminActivityLog[]
+}
+
+model AdminActivityLog {
+  id        String    @id @default(cuid())
+  adminId   String?
+  adminName String
+  action    String    // CREATE_PRODUCT, UPDATE_ORDER_STATUS, RESTOCK, etc.
+  entity    String    // PRODUCT, ORDER, CATEGORY, COUPON, SETTING
+  entityId  String?
+  details   String?   // JSON or text details
+  createdAt DateTime  @default(now())
+  admin     AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
 }
 
 model Category {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
-  slug        String    @unique
+  slug        String     @unique
   description String?
   image       String?
   icon        String?
+  isVisible   Boolean    @default(true)
+  orderIndex  Int        @default(0)
+  parentId    String?
+  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("SubCategories")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([slug])
+  @@index([isVisible])
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  logo        String?
+  description String?
   isVisible   Boolean   @default(true)
-  orderIndex  Int       @default(0)
   products    Product[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
 model Product {
-  id             String         @id @default(cuid())
-  name           String
-  slug           String         @unique
-  description    String
-  regularPrice   Float
-  salePrice      Float?
-  sku            String         @unique
-  stock          Int            @default(0)
-  isFeatured     Boolean        @default(false)
-  isNewArrival   Boolean        @default(false)
-  status         String         @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
-  specifications String?        // JSON string of specs e.g. {"Brand":"Sony","Warranty":"1 Year"}
-  categoryId     String
-  category       Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  images         ProductImage[]
-  orderItems     OrderItem[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                 String              @id @default(cuid())
+  name               String
+  slug               String              @unique
+  description        String
+  regularPrice       Float
+  salePrice          Float?
+  costPrice          Float?              // Merchant internal cost
+  sku                String              @unique
+  stock              Int                 @default(0)
+  lowStockThreshold  Int                 @default(5)
+  isFeatured         Boolean             @default(false)
+  isNewArrival       Boolean             @default(false)
+  status             String              @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
+  specifications     String?             // JSON string e.g. {"Brand":"Sony"}
+  seoTitle           String?
+  seoDescription     String?
+  categoryId         String
+  category           Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brandId            String?
+  brand              Brand?              @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  images             ProductImage[]
+  variants           ProductVariant[]
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@index([isNewArrival])
+  @@index([createdAt])
 }
 
 model ProductImage {
@@ -64,56 +116,203 @@ model ProductImage {
   createdAt  DateTime @default(now())
 }
 
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String   // e.g. "Color: Red, Size: XL"
+  sku       String   @unique
+  price     Float?
+  stock     Int      @default(0)
+  options   String?  // JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Customer {
+  id          String         @id @default(cuid())
+  name        String
+  phone       String         @unique
+  email       String?
+  address     String?
+  city        String?
+  area        String?
+  postalCode  String?
+  notes       CustomerNote[]
+  orders      Order[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([phone])
+}
+
+model CustomerNote {
   id         String   @id @default(cuid())
-  name       String
-  phone      String   @unique
-  email      String?
-  address    String?
-  city       String?
-  area       String?
-  postalCode String?
-  orders     Order[]
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  note       String
+  authorName String   @default("Admin")
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  orderNumber    String      @unique // e.g. SC-1001
-  customerName   String
-  phone          String
-  email          String?
-  address        String
-  city           String
-  area           String?
-  postalCode     String?
-  orderNotes     String?
-  subtotal       Float
-  deliveryCharge Float       @default(0)
-  discount       Float       @default(0)
-  total          Float
-  paymentMethod  String      @default("Cash on Delivery")
-  status         String      @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
-  customerId     String?
-  customer       Customer?   @relation(fields: [customerId], references: [id])
-  items          OrderItem[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id               String               @id @default(cuid())
+  orderNumber      String               @unique // e.g. SC-1001
+  customerName     String
+  phone            String
+  email            String?
+  address          String
+  city             String
+  area             String?
+  postalCode       String?
+  orderNotes       String?
+  internalNotes    String?
+  subtotal         Float
+  deliveryCharge   Float                @default(0)
+  discount         Float                @default(0)
+  couponCode       String?
+  total            Float
+  paymentMethod    String               @default("Cash on Delivery")
+  paymentStatus    String               @default("PENDING") // PENDING, PAID, REFUNDED
+  deliveryProvider String?              // e.g. Steadfast, Pathao, RedX, In-house
+  trackingNumber   String?
+  status           String               @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, RETURNED, REFUNDED
+  refundAmount     Float?               @default(0)
+  refundStatus     String?              // NONE, REQUESTED, PROCESSED
+  isStockRestored  Boolean              @default(false)
+  customerId       String?
+  customer         Customer?            @relation(fields: [customerId], references: [id])
+  items            OrderItem[]
+  statusHistory    OrderStatusHistory[]
+  payments         Payment[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([orderNumber])
+  @@index([createdAt])
 }
 
 model OrderItem {
   id          String   @id @default(cuid())
   orderId     String
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productName String
   productSku  String
+  variantName String?
   price       Float    // Price snapshot at purchase time
   quantity    Int
   image       String?
   createdAt   DateTime @default(now())
+}
+
+model OrderStatusHistory {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus String
+  toStatus   String
+  note       String?
+  changedBy  String   @default("System")
+  createdAt  DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model Payment {
+  id             String    @id @default(cuid())
+  orderId        String
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method         String    // Cash on Delivery, bKash, Nagad, Card
+  transactionRef String?
+  amount         Float
+  status         String    @default("PENDING") // PENDING, PAID, REFUNDED, FAILED
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model InventoryMovement {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productName   String
+  sku           String
+  changeType    String   // RESTOCK, ORDER_DEDUCTION, CANCELLATION_RESTORE, MANUAL_ADJUSTMENT, RETURN
+  quantity      Int      // +10 or -2
+  previousStock Int
+  newStock      Int
+  reason        String?
+  adminName     String   @default("System")
+  createdAt     DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model Coupon {
+  id                String             @id @default(cuid())
+  code              String             @unique
+  description       String?
+  discountType      String             @default("PERCENTAGE") // PERCENTAGE, FIXED
+  discountValue     Float              // e.g. 10 (%) or 100 (BDT)
+  minOrderAmount    Float              @default(0)
+  maxDiscountAmount Float?
+  startDate         DateTime?
+  endDate           DateTime?
+  usageLimit        Int?
+  usageCount        Int                @default(0)
+  perCustomerLimit  Int                @default(1)
+  isActive          Boolean            @default(true)
+  redemptions       CouponRedemption[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([code])
+}
+
+model CouponRedemption {
+  id             String   @id @default(cuid())
+  couponId       String
+  coupon         Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  orderId        String
+  customerPhone  String
+  discountAmount Float
+  createdAt      DateTime @default(now())
+
+  @@index([couponId])
+  @@index([customerPhone])
+}
+
+model Banner {
+  id         String   @id @default(cuid())
+  title      String
+  subtitle   String?
+  badge      String?
+  buttonText String?
+  buttonLink String?
+  imageUrl   String
+  section    String   @default("HERO") // HERO, PROMO, POPUP
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([section])
+  @@index([isActive])
+}
+
+model ShippingZone {
+  id                String   @id @default(cuid())
+  name              String   // Inside Dhaka, Outside Dhaka, etc.
+  fee               Float
+  estimatedDelivery String?  // e.g. "24-48 Hours"
+  isActive          Boolean  @default(true)
+  isDefault         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model StoreSetting {

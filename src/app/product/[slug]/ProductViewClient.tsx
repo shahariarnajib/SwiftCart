@@ -14,6 +14,7 @@ import {
   Check,
   AlertCircle,
   Share2,
+  MessageCircle,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { useCart } from "@/context/CartContext";
@@ -293,6 +294,18 @@ export function ProductViewClient({ product }: ProductViewProps) {
               <Zap className="w-4 h-4 fill-current" />
               <span>Buy Now (Instant Checkout)</span>
             </button>
+
+            <a
+              href={`https://wa.me/8801925613994?text=${encodeURIComponent(
+                `Hi Swift Cart, I want to order/inquire about: ${product.name} (SKU: ${product.sku}) - Price: ৳${price}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sm:col-span-2 py-3.5 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Order / Inquire via WhatsApp (+8801925613994)</span>
+            </a>
           </div>
         </div>
 
@@ -301,8 +314,7 @@ export function ProductViewClient({ product }: ProductViewProps) {
           <div className="flex items-center gap-3 text-xs text-slate-700 font-medium">
             <Truck className="w-4 h-4 text-brand-600 shrink-0" />
             <span>
-              <strong>Nationwide Delivery:</strong> 24-48 hrs inside Dhaka (৳60), 3-5 days outside
-              (৳120).
+              <strong>Nationwide Delivery:</strong> Express delivery from Chawkbazar, Chittagong across all 64 districts.
             </span>
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-700 font-medium border-t border-slate-100 pt-2.5">

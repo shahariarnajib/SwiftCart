@@ -34,7 +34,7 @@ export default function CheckoutPage() {
     phone: "",
     email: "",
     address: "",
-    city: "Dhaka",
+    city: "Chittagong",
     area: "",
     postalCode: "",
     orderNotes: "",
@@ -43,6 +43,12 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("Cash on Delivery");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Coupon state
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
   // If cart is empty, redirect or prompt
   if (items.length === 0) {
@@ -71,15 +77,43 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Auto toggle delivery zone if city is Dhaka vs outside
+    // Auto toggle delivery zone if city is Chittagong or Dhaka vs outside
     if (name === "city") {
-      if (value.toLowerCase().includes("dhaka")) {
+      if (value.toLowerCase().includes("chittagong") || value.toLowerCase().includes("dhaka")) {
         setDeliveryZone("inside_dhaka");
       } else {
         setDeliveryZone("outside_dhaka");
       }
     }
   };
+
+  const handleApplyCoupon = async (e: React.MouseEvent | React.FormEvent) => {
+    e.preventDefault();
+    if (!couponInput.trim()) return;
+    setIsValidatingCoupon(true);
+    setCouponError(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput.trim(), subtotal }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setCouponError(data.error || "Invalid coupon code");
+        setAppliedCoupon(null);
+      } else {
+        setAppliedCoupon({ code: data.code, discountAmount: data.discountAmount });
+        setCouponInput("");
+      }
+    } catch {
+      setCouponError("Failed to apply coupon");
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const finalPayable = Math.max(0, subtotal - (appliedCoupon?.discountAmount || 0) + deliveryCharge);
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +149,7 @@ export default function CheckoutPage() {
         postalCode: formData.postalCode,
         orderNotes: formData.orderNotes,
         deliveryZone,
+        couponCode: appliedCoupon?.code || null,
         items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -263,8 +298,8 @@ export default function CheckoutPage() {
                     onChange={handleChange}
                     className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-brand-500 focus:bg-white font-medium"
                   >
+                    <option value="Chittagong">Chittagong (Store Location)</option>
                     <option value="Dhaka">Dhaka (Metro)</option>
-                    <option value="Chittagong">Chittagong</option>
                     <option value="Sylhet">Sylhet</option>
                     <option value="Rajshahi">Rajshahi</option>
                     <option value="Khulna">Khulna</option>
@@ -285,7 +320,7 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     name="area"
-                    placeholder="e.g. Banani / Gulshan / Mirpur"
+                    placeholder="e.g. Chawkbazar / GEC / Dhanmondi"
                     value={formData.area}
                     onChange={handleChange}
                     className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-brand-500 focus:bg-white"
@@ -322,7 +357,7 @@ export default function CheckoutPage() {
                           : "border-slate-200 text-slate-600"
                       }`}
                     >
-                      Inside Dhaka (৳60)
+                      Inside City (৳60)
                     </button>
                     <button
                       type="button"
@@ -333,7 +368,7 @@ export default function CheckoutPage() {
                           : "border-slate-200 text-slate-600"
                       }`}
                     >
-                      Outside Dhaka (৳120)
+                      Outside City (৳120)
                     </button>
                   </div>
                 </div>
@@ -435,6 +470,57 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Coupon Code Input */}
+              <div className="pt-2 border-t border-slate-100">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-xs text-emerald-800">
+                          {appliedCoupon.code}
+                        </span>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-200/60 px-1.5 py-0.5 rounded">
+                          Applied
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">
+                        Discount: -{formatCurrency(appliedCoupon.discountAmount)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAppliedCoupon(null)}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Promo or Coupon Code"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        className="flex-1 text-xs uppercase font-mono px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={isValidatingCoupon || !couponInput.trim()}
+                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl disabled:opacity-50"
+                      >
+                        {isValidatingCoupon ? "..." : "Apply"}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="text-[11px] text-rose-600 font-semibold mt-1.5">{couponError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Breakdown */}
               <div className="space-y-2.5 text-sm border-t border-slate-100 pt-4">
                 <div className="flex justify-between text-slate-600">
@@ -453,10 +539,16 @@ export default function CheckoutPage() {
                     )}
                   </span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-emerald-600 font-bold">
+                    <span>Discount ({appliedCoupon.code})</span>
+                    <span>-{formatCurrency(appliedCoupon.discountAmount)}</span>
+                  </div>
+                )}
 
                 <div className="border-t border-slate-200 pt-3 flex justify-between items-baseline">
                   <span className="text-base font-black text-slate-900">Total Payable</span>
-                  <span className="text-2xl font-black text-brand-600">{formatCurrency(total)}</span>
+                  <span className="text-2xl font-black text-brand-600">{formatCurrency(finalPayable)}</span>
                 </div>
               </div>
 

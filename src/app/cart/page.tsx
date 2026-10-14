@@ -205,7 +205,7 @@ export default function CartPage() {
                         : "border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}
                   >
-                    <div>Inside Dhaka</div>
+                    <div>Inside City</div>
                     <div className="text-[10px] font-normal text-slate-500">৳60 / 24-48 hrs</div>
                   </button>
                   <button
@@ -217,7 +217,7 @@ export default function CartPage() {
                         : "border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}
                   >
-                    <div>Outside Dhaka</div>
+                    <div>Outside City</div>
                     <div className="text-[10px] font-normal text-slate-500">৳120 / 3-5 days</div>
                   </button>
                 </div>

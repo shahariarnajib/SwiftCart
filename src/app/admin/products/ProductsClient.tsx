@@ -15,6 +15,8 @@ import {
   Star,
   Sparkles,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface ProductRow {
@@ -52,6 +54,9 @@ export function ProductsClient({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
   // Filter products locally for instantaneous response
   const filteredProducts = products.filter((p) => {
     if (selectedCategory !== "ALL" && p.category.id !== selectedCategory) {
@@ -70,6 +75,12 @@ export function ProductsClient({
     return true;
   });
 
+  const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
+  const pagedProducts = filteredProducts.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   const handleDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
@@ -81,6 +92,7 @@ export function ProductsClient({
         alert(data.error || "Failed to delete product");
       } else {
         setProducts((prev) => prev.filter((p) => p.id !== deleteId));
+        router.refresh();
       }
     } catch {
       alert("Error deleting product");
@@ -118,7 +130,10 @@ export function ProductsClient({
             type="text"
             placeholder="Search by product name or SKU..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white text-slate-900"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -128,7 +143,10 @@ export function ProductsClient({
         <div className="w-full md:w-48">
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500 text-slate-700 font-medium"
           >
             <option value="ALL">All Categories</option>
@@ -144,7 +162,10 @@ export function ProductsClient({
         <div className="w-full md:w-44">
           <select
             value={selectedStock}
-            onChange={(e) => setSelectedStock(e.target.value)}
+            onChange={(e) => {
+              setSelectedStock(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500 text-slate-700 font-medium"
           >
             <option value="ALL">All Stock Levels</option>
@@ -179,7 +200,7 @@ export function ProductsClient({
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((p) => {
+                pagedProducts.map((p) => {
                   const primaryImg =
                     p.images.length > 0
                       ? p.images[0].url
@@ -314,6 +335,66 @@ export function ProductsClient({
             </tbody>
           </table>
         </div>
+
+        {/* Scalable Admin Pagination for 1,000+ Products */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
+            <span className="text-xs text-slate-500 font-medium">
+              Showing {(currentPage - 1) * pageSize + 1} to{" "}
+              {Math.min(currentPage * pageSize, filteredProducts.length)} of{" "}
+              {filteredProducts.length} products
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Prev
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(
+                  (p) =>
+                    p === 1 ||
+                    p === totalPages ||
+                    (p >= currentPage - 2 && p <= currentPage + 2)
+                )
+                .map((p, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showEllipsis = prev && p - prev > 1;
+                  return (
+                    <React.Fragment key={p}>
+                      {showEllipsis && (
+                        <span className="px-1 text-slate-400 text-xs">...</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors ${
+                          p === currentPage
+                            ? "bg-brand-600 text-white shadow-xs"
+                            : "border border-slate-200 text-slate-700 hover:bg-white"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+              >
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -329,8 +410,7 @@ export function ProductsClient({
             </div>
             <h3 className="text-base font-black text-slate-900 mb-1">Delete this product?</h3>
             <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-              If this product has historical orders, it will be safely archived instead of corrupting
-              past receipts.
+              Are you sure you want to permanently delete this product? This action cannot be undone.
             </p>
             <div className="flex items-center gap-3">
               <button

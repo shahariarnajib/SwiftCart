@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentAdmin } from "@/lib/auth";
+import { getCurrentAdmin, logAdminActivity } from "@/lib/auth";
 import { slugify } from "@/lib/format";
 
 export async function GET(
@@ -142,28 +142,53 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
-    // Check if product is in any orders
-    const orderItemsCount = await prisma.orderItem.count({
-      where: { productId: params.id },
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: params.id },
+      select: { id: true, name: true, sku: true },
     });
 
-    if (orderItemsCount > 0) {
-      // Instead of hard delete which violates foreign keys in historical orders, mark as ARCHIVED
-      await prisma.product.update({
-        where: { id: params.id },
-        data: { status: "ARCHIVED" },
-      });
-      return NextResponse.json({
-        success: true,
-        message: "Product is referenced in existing orders; its status has been changed to ARCHIVED.",
-      });
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    await prisma.product.delete({
-      where: { id: params.id },
+    // Atomically unlink from order items, remove relations, and delete product
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink historical order items (order items retain product snapshot info)
+      await tx.orderItem.updateMany({
+        where: { productId: params.id },
+        data: { productId: null },
+      });
+
+      // 2. Delete inventory movements associated with this product
+      await tx.inventoryMovement.deleteMany({
+        where: { productId: params.id },
+      });
+
+      // 3. Delete product variants
+      await tx.productVariant.deleteMany({
+        where: { productId: params.id },
+      });
+
+      // 4. Delete product images
+      await tx.productImage.deleteMany({
+        where: { productId: params.id },
+      });
+
+      // 5. Delete the product
+      await tx.product.delete({
+        where: { id: params.id },
+      });
     });
 
-    return NextResponse.json({ success: true, message: "Product deleted successfully." });
+    await logAdminActivity(
+      admin,
+      "DELETE_PRODUCT",
+      "PRODUCT",
+      params.id,
+      { name: existingProduct.name, sku: existingProduct.sku }
+    );
+
+    return NextResponse.json({ success: true, message: `Product "${existingProduct.name}" deleted successfully.` });
   } catch (error) {
     console.error("Failed to delete product:", error);
     return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });

@@ -174,7 +174,7 @@ export default async function HomePage() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900">Swift Express</div>
-                    <div className="text-[11px] text-slate-500">Banani Hub, Dhaka</div>
+                    <div className="text-[11px] text-slate-500">Chawkbazar, Chittagong</div>
                   </div>
                 </div>
               </div>
@@ -250,11 +250,17 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((prod) => (
-            <ProductCard key={prod.id} product={prod} />
-          ))}
-        </div>
+        {featuredProducts.length === 0 ? (
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-8 text-center text-xs text-slate-500">
+            No featured products listed yet. Add products from your admin panel and toggle &ldquo;Feature on Homepage&rdquo;.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredProducts.map((prod) => (
+              <ProductCard key={prod.id} product={prod} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 4. PROMOTIONAL BANNER */}
@@ -326,11 +332,17 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {newArrivals.map((prod) => (
-            <ProductCard key={prod.id} product={prod} />
-          ))}
-        </div>
+        {newArrivals.length === 0 ? (
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-8 text-center text-xs text-slate-500">
+            No new arrival products listed yet. Add products from your admin panel and toggle &ldquo;New Arrival&rdquo;.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {newArrivals.map((prod) => (
+              <ProductCard key={prod.id} product={prod} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 6. WHY CHOOSE SWIFT CART (TRUST SECTION) */}
@@ -421,7 +433,7 @@ export default async function HomePage() {
               ))}
             </div>
             <p className="text-sm text-slate-600 leading-relaxed italic mb-4">
-              &ldquo;Ordered the Swift Sound ANC headphones in Dhanmondi. Arrived the next afternoon in pristine original packaging. Active noise cancellation works like a charm!&rdquo;
+              &ldquo;Ordered online for delivery in Dhanmondi. Arrived the next afternoon in pristine original packaging with official warranty. Active customer care made it effortless!&rdquo;
             </p>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center text-xs">
@@ -441,7 +453,7 @@ export default async function HomePage() {
               ))}
             </div>
             <p className="text-sm text-slate-600 leading-relaxed italic mb-4">
-              &ldquo;Cash on delivery was seamless in Chittagong. I inspected the AuraFit Smart Watch before handing over cash to the courier. Highly trustworthy platform.&rdquo;
+              &ldquo;Cash on delivery was seamless in Chittagong. I inspected my package before handing over cash to the courier. Highly trustworthy platform.&rdquo;
             </p>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center text-xs">
@@ -461,7 +473,7 @@ export default async function HomePage() {
               ))}
             </div>
             <p className="text-sm text-slate-600 leading-relaxed italic mb-4">
-              &ldquo;The mechanical keyboard feels solid and genuine. Fast checkout without creating a complicated account. Swift Cart is now my go-to tech store in BD.&rdquo;
+              &ldquo;Items are 100% genuine and high quality. Fast checkout without requiring a complicated sign up. Swift Cart is now my go-to store in Bangladesh.&rdquo;
             </p>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center text-xs">

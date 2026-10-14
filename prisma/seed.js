@@ -10,7 +10,7 @@ async function main() {
   const adminPasswordHash = await bcrypt.hash("admin123", 10);
   const admin = await prisma.adminUser.upsert({
     where: { username: "admin" },
-    update: {},
+    update: { passwordHash: adminPasswordHash },
     create: {
       username: "admin",
       email: "admin@swiftcart.com",
@@ -25,15 +25,15 @@ async function main() {
   const defaultSettings = [
     { key: "store_name", value: "Swift Cart" },
     { key: "store_tagline", value: "Shop Smarter. Shop Faster." },
-    { key: "contact_phone", value: "+880 1712-345678" },
+    { key: "contact_phone", value: "+8801925613994" },
     { key: "contact_email", value: "support@swiftcart.com" },
-    { key: "store_address", value: "House 42, Road 11, Banani, Dhaka-1213, Bangladesh" },
+    { key: "store_address", value: "Chawkbazar, Chittagong, Bangladesh" },
     { key: "currency_symbol", value: "৳" },
     { key: "currency_code", value: "BDT" },
     { key: "delivery_inside_dhaka", value: "60" },
     { key: "delivery_outside_dhaka", value: "120" },
     { key: "free_delivery_threshold", value: "2500" },
-    { key: "order_notice", value: "Standard delivery inside Dhaka in 24-48 hours. Nationwide delivery in 3-5 days." },
+    { key: "order_notice", value: "Fast delivery from Chawkbazar, Chittagong across all 64 districts. Cash on Delivery available." },
   ];
 
   for (const s of defaultSettings) {
@@ -423,68 +423,93 @@ async function main() {
   }
   console.log("Products seeded:", productsData.length);
 
-  // 5. Seed Initial Customer and Sample Order for dashboard metrics demonstration
-  const sampleCustomer = await prisma.customer.upsert({
-    where: { phone: "01799887766" },
-    update: {},
+  // 5. Customer & Order data starts clean for real business operations
+
+  // 6. Create Coupons
+  await prisma.coupon.upsert({
+    where: { code: "WELCOME10" },
     create: {
-      name: "Tanvir Ahmed",
-      phone: "01799887766",
-      email: "tanvir.ahmed@example.com",
-      address: "House 12, Road 4, Sector 3, Uttara",
-      city: "Dhaka",
-      area: "Uttara",
-      postalCode: "1230",
+      code: "WELCOME10",
+      description: "10% Discount for New Shoppers across Bangladesh",
+      discountType: "PERCENTAGE",
+      discountValue: 10,
+      minOrderAmount: 1000,
+      maxDiscountAmount: 500,
+      isActive: true,
+      usageLimit: 1000,
     },
+    update: { isActive: true },
   });
 
-  const existingOrder = await prisma.order.findFirst({ where: { orderNumber: "SC-1001" } });
-  if (!existingOrder) {
-    const sampleProduct1 = await prisma.product.findFirst({ where: { sku: "ELEC-HD-001" } });
-    const sampleProduct2 = await prisma.product.findFirst({ where: { sku: "ACC-WL-009" } });
+  await prisma.coupon.upsert({
+    where: { code: "SWIFT100" },
+    create: {
+      code: "SWIFT100",
+      description: "Flat ৳100 Off on orders above ৳1,500",
+      discountType: "FIXED",
+      discountValue: 100,
+      minOrderAmount: 1500,
+      isActive: true,
+      usageLimit: 500,
+    },
+    update: { isActive: true },
+  });
+  console.log("Coupons seeded: WELCOME10, SWIFT100");
 
-    if (sampleProduct1 && sampleProduct2) {
-      await prisma.order.create({
-        data: {
-          orderNumber: "SC-1001",
-          customerName: sampleCustomer.name,
-          phone: sampleCustomer.phone,
-          email: sampleCustomer.email,
-          address: sampleCustomer.address,
-          city: sampleCustomer.city,
-          area: sampleCustomer.area,
-          postalCode: sampleCustomer.postalCode,
-          orderNotes: "Please deliver before 5 PM if possible.",
-          subtotal: 4840,
-          deliveryCharge: 60,
-          discount: 0,
-          total: 4900,
-          paymentMethod: "Cash on Delivery",
-          status: "CONFIRMED",
-          customerId: sampleCustomer.id,
-          items: {
-            create: [
-              {
-                productId: sampleProduct1.id,
-                productName: sampleProduct1.name,
-                productSku: sampleProduct1.sku,
-                price: 3850,
-                quantity: 1,
-                image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
-              },
-              {
-                productId: sampleProduct2.id,
-                productName: sampleProduct2.name,
-                productSku: sampleProduct2.sku,
-                price: 990,
-                quantity: 1,
-                image: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80",
-              },
-            ],
-          },
+  // 7. Create Hero Banners
+  const existingBanners = await prisma.banner.count();
+  if (existingBanners === 0) {
+    await prisma.banner.createMany({
+      data: [
+        {
+          title: "Next-Gen Sound & Audio Gear",
+          subtitle: "Experience unmatched clarity with our authentic active noise cancelling collection.",
+          badge: "LIMITED TIME OFFER",
+          buttonText: "Explore Audio",
+          buttonLink: "/category/electronics",
+          imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=80",
+          section: "HERO",
+          orderIndex: 1,
+          isActive: true,
         },
-      });
-    }
+        {
+          title: "Smart Living. Connected World.",
+          subtitle: "Smartwatches, fitness trackers, and wearables with 1-Year Official Replacement Warranty.",
+          badge: "NEW ARRIVALS 2026",
+          buttonText: "Shop Wearables",
+          buttonLink: "/category/gadgets",
+          imageUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80",
+          section: "HERO",
+          orderIndex: 2,
+          isActive: true,
+        },
+      ],
+    });
+    console.log("Hero banners seeded.");
+  }
+
+  // 8. Create Shipping Zones
+  const existingZones = await prisma.shippingZone.count();
+  if (existingZones === 0) {
+    await prisma.shippingZone.createMany({
+      data: [
+        {
+          name: "Inside Dhaka City",
+          fee: 60,
+          estimatedDelivery: "24 - 48 Hours",
+          isActive: true,
+          isDefault: true,
+        },
+        {
+          name: "Outside Dhaka / Nationwide",
+          fee: 120,
+          estimatedDelivery: "2 - 4 Business Days",
+          isActive: true,
+          isDefault: false,
+        },
+      ],
+    });
+    console.log("Shipping zones seeded.");
   }
 
   console.log("Swift Cart database seed complete!");

@@ -11,6 +11,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const paymentStatus = searchParams.get("paymentStatus");
     const q = searchParams.get("q");
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : undefined;
 
@@ -20,11 +21,16 @@ export async function GET(req: Request) {
       where.status = status;
     }
 
+    if (paymentStatus && paymentStatus !== "ALL") {
+      where.paymentStatus = paymentStatus;
+    }
+
     if (q) {
       where.OR = [
         { orderNumber: { contains: q } },
         { customerName: { contains: q } },
         { phone: { contains: q } },
+        { email: { contains: q } },
       ];
     }
 
@@ -35,6 +41,9 @@ export async function GET(req: Request) {
       include: {
         items: true,
         customer: true,
+        statusHistory: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
@@ -59,6 +68,7 @@ export async function POST(req: Request) {
       orderNotes,
       deliveryZone,
       items,
+      couponCode,
     } = body;
 
     // Validate required fields
@@ -76,9 +86,9 @@ export async function POST(req: Request) {
     // Clean phone number
     const cleanPhone = phone.trim();
 
-    // Run order placement inside transaction to lock and decrement stock safely
+    // Run order placement inside database transaction for concurrency safety
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Fetch current live products and check stock
+      // 1. Fetch current live products and lock check stock
       const productIds = items.map((i: any) => i.productId);
       const dbProducts = await tx.product.findMany({
         where: { id: { in: productIds } },
@@ -134,14 +144,71 @@ export async function POST(req: Request) {
             stock: prod.stock - item.quantity,
           },
         });
+
+        // Record inventory movement
+        await tx.inventoryMovement.create({
+          data: {
+            productId: prod.id,
+            productName: prod.name,
+            sku: prod.sku,
+            changeType: "ORDER_DEDUCTION",
+            quantity: -item.quantity,
+            previousStock: prod.stock,
+            newStock: prod.stock - item.quantity,
+            reason: "Checkout Order Placement",
+            adminName: "Customer Checkout",
+          },
+        });
+      }
+
+      // 2. Validate Coupon if provided
+      let discountAmount = 0;
+      let validCoupon: any = null;
+
+      if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+        const cleanCode = couponCode.trim().toUpperCase();
+        validCoupon = await tx.coupon.findUnique({
+          where: { code: cleanCode },
+        });
+
+        if (validCoupon && validCoupon.isActive) {
+          const now = new Date();
+          const isDateValid =
+            (!validCoupon.startDate || new Date(validCoupon.startDate) <= now) &&
+            (!validCoupon.endDate || new Date(validCoupon.endDate) >= now);
+          const isLimitValid =
+            !validCoupon.usageLimit || validCoupon.usageCount < validCoupon.usageLimit;
+          const isMinSpendValid = subtotal >= validCoupon.minOrderAmount;
+
+          if (isDateValid && isLimitValid && isMinSpendValid) {
+            if (validCoupon.discountType === "PERCENTAGE") {
+              discountAmount = (subtotal * validCoupon.discountValue) / 100;
+              if (validCoupon.maxDiscountAmount && discountAmount > validCoupon.maxDiscountAmount) {
+                discountAmount = validCoupon.maxDiscountAmount;
+              }
+            } else {
+              discountAmount = validCoupon.discountValue;
+            }
+            // Cannot discount more than subtotal
+            if (discountAmount > subtotal) {
+              discountAmount = subtotal;
+            }
+
+            // Increment usage count
+            await tx.coupon.update({
+              where: { id: validCoupon.id },
+              data: { usageCount: { increment: 1 } },
+            });
+          }
+        }
       }
 
       // Calculate Delivery Fee (Free if subtotal > 2500, otherwise Dhaka 60, Outside 120)
       const deliveryCharge =
         subtotal > 2500 ? 0 : deliveryZone === "outside_dhaka" ? 120 : 60;
-      const total = subtotal + deliveryCharge;
+      const total = Math.max(0, subtotal - discountAmount + deliveryCharge);
 
-      // 2. Generate unique order number (e.g. SC-1002)
+      // 3. Generate unique order number (e.g. SC-1002)
       const lastOrder = await tx.order.findFirst({
         orderBy: { createdAt: "desc" },
         select: { orderNumber: true },
@@ -156,7 +223,7 @@ export async function POST(req: Request) {
       }
       const orderNumber = `SC-${nextNumber}`;
 
-      // 3. Upsert Customer Record
+      // 4. Upsert Customer Record
       let customer = await tx.customer.findUnique({
         where: { phone: cleanPhone },
       });
@@ -174,7 +241,6 @@ export async function POST(req: Request) {
           },
         });
       } else {
-        // Update customer details with latest address
         customer = await tx.customer.update({
           where: { id: customer.id },
           data: {
@@ -188,7 +254,7 @@ export async function POST(req: Request) {
         });
       }
 
-      // 4. Create the Order
+      // 5. Create Order
       const order = await tx.order.create({
         data: {
           orderNumber,
@@ -202,19 +268,42 @@ export async function POST(req: Request) {
           orderNotes: orderNotes ? orderNotes.trim() : null,
           subtotal,
           deliveryCharge,
-          discount: 0,
+          discount: discountAmount,
+          couponCode: validCoupon ? validCoupon.code : null,
           total,
           paymentMethod: "Cash on Delivery",
+          paymentStatus: "PENDING",
           status: "PENDING",
           customerId: customer.id,
           items: {
             create: orderItemsToCreate,
           },
+          statusHistory: {
+            create: {
+              fromStatus: "NEW",
+              toStatus: "PENDING",
+              note: "Order created successfully via storefront checkout",
+              changedBy: "Storefront Checkout",
+            },
+          },
         },
         include: {
           items: true,
+          customer: true,
         },
       });
+
+      // Record coupon redemption if applied
+      if (validCoupon && discountAmount > 0) {
+        await tx.couponRedemption.create({
+          data: {
+            couponId: validCoupon.id,
+            orderId: order.id,
+            customerPhone: cleanPhone,
+            discountAmount,
+          },
+        });
+      }
 
       return order;
     });

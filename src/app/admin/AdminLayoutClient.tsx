@@ -17,6 +17,11 @@ import {
   X,
   Zap,
   Plus,
+  Tag,
+  Globe,
+  Truck,
+  BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 
 interface AdminLayoutClientProps {
@@ -56,13 +61,49 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
     { name: "Categories", href: "/admin/categories", icon: Layers },
     { name: "Inventory", href: "/admin/inventory", icon: Warehouse },
     { name: "Customers", href: "/admin/customers", icon: Users },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
+    { name: "Coupons & Discounts", href: "/admin/coupons", icon: Tag },
+    { name: "Website Content", href: "/admin/content", icon: Globe },
+    { name: "Shipping & Delivery", href: "/admin/shipping", icon: Truck },
+    { name: "Sales Reports", href: "/admin/reports", icon: BarChart3 },
+    { name: "Store Settings", href: "/admin/settings", icon: Settings },
+    { name: "Team & Security", href: "/admin/team", icon: ShieldCheck },
   ];
+
+  const getPageTitle = () => {
+    if (pathname === "/admin") return "Dashboard Overview";
+    const segment = pathname.split("/")[2] || "";
+    switch (segment) {
+      case "products":
+        return pathname.includes("/new") ? "Add New Product" : pathname.includes("/edit") ? "Edit Product" : "Product Catalog";
+      case "categories":
+        return "Category Management";
+      case "orders":
+        return "Customer Orders";
+      case "inventory":
+        return "Inventory Control";
+      case "customers":
+        return "Customer Directory";
+      case "coupons":
+        return "Coupons & Discounts";
+      case "content":
+        return "Website Content & Banners";
+      case "shipping":
+        return "Shipping & Delivery";
+      case "reports":
+        return "Sales & Operational Reports";
+      case "settings":
+        return "Store Configuration";
+      case "team":
+        return "Team & Admin Permissions";
+      default:
+        return segment.replace("-", " ");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col lg:flex-row">
       {/* Mobile Top Bar */}
-      <header className="lg:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+      <header className="lg:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 border-b border-slate-800">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -71,9 +112,14 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
           >
             <Menu className="w-6 h-6" />
           </button>
-          <div className="flex items-center gap-2 font-bold text-base">
-            <Zap className="w-4 h-4 text-brand-500 fill-brand-500" />
-            <span>Swift Cart Admin</span>
+          <div className="flex items-center gap-2">
+            <span className="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+              <span className="w-6 h-6 rounded-lg bg-brand-600 flex items-center justify-center text-white text-xs font-black">S</span>
+              Swift Cart
+            </span>
+            <span className="text-[10px] text-brand-400 uppercase tracking-widest font-bold bg-slate-800 px-1.5 py-0.5 rounded">
+              Admin
+            </span>
           </div>
         </div>
         <Link
@@ -89,24 +135,20 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-slate-300 min-h-screen shrink-0 border-r border-slate-800 sticky top-0 h-screen">
         {/* Brand Header */}
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-          <Link href="/admin" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30">
-              <Zap className="w-5 h-5 fill-white" />
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+          <Link href="/admin" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-brand-600/30">
+              SC
             </div>
-            <div>
-              <div className="text-base font-black text-white leading-none">
-                Swift<span className="text-brand-500">Cart</span>
-              </div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                Admin Console
-              </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-black text-white leading-tight">Swift Cart</span>
+              <span className="text-[10px] text-brand-400 uppercase tracking-wider font-bold">Admin Portal</span>
             </div>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive =
@@ -116,14 +158,14 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
               <Link
                 key={link.name}
                 href={link.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   isActive
                     ? "bg-brand-600 text-white shadow-md shadow-brand-600/30"
                     : "text-slate-400 hover:text-white hover:bg-slate-800"
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span>{link.name}</span>
+                <span className="truncate">{link.name}</span>
               </Link>
             );
           })}
@@ -148,8 +190,8 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
               <span className="text-xs font-bold text-white truncate">
                 {adminUser?.username || "Admin"}
               </span>
-              <span className="text-[10px] text-emerald-400 font-semibold uppercase">
-                {adminUser?.role || "ADMIN"}
+              <span className="text-[10px] text-emerald-400 font-bold uppercase truncate">
+                {adminUser?.role?.replace("_", " ") || "SUPER ADMIN"}
               </span>
             </div>
             <button
@@ -174,8 +216,8 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
           <div className="relative flex flex-col w-72 bg-slate-900 text-slate-300 h-full p-6 z-10 shadow-2xl">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white">
-                  <Zap className="w-4 h-4 fill-white" />
+                <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm">
+                  SC
                 </div>
                 <span className="text-base font-black text-white">Swift Cart Admin</span>
               </div>
@@ -198,7 +240,7 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
                     key={link.name}
                     href={link.href}
                     onClick={() => setMobileSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold ${
                       isActive
                         ? "bg-brand-600 text-white"
                         : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -236,16 +278,28 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
       {/* Main Admin Page Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Header Bar */}
-        <header className="bg-white border-b border-slate-200/80 px-6 py-4 hidden lg:flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-3">
+        <header className="bg-white border-b border-slate-200/80 px-6 py-4 hidden lg:flex items-center justify-between sticky top-0 z-30 shadow-xs">
+          <div>
             <h1 className="text-lg font-black text-slate-900 capitalize">
-              {pathname === "/admin"
-                ? "Dashboard Overview"
-                : pathname.split("/")[2]?.replace("-", " ") || "Admin"}
+              {getPageTitle()}
             </h1>
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium mt-0.5">
+              <span>Admin</span>
+              <span>/</span>
+              <span className="text-slate-600 capitalize">
+                {pathname.split("/")[2] || "Dashboard"}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              href="/admin/settings"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-colors"
+            >
+              <Settings className="w-4 h-4 text-slate-500" />
+              <span>Settings & Password</span>
+            </Link>
             <Link
               href="/admin/products/new"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all active:scale-95"

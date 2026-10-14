@@ -54,3 +54,84 @@
 .animate-scale-in {
   animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Four-Corner Red Light Product Effect */
+@keyframes cornerGlowPulse {
+  0%, 100% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 10px rgba(220, 38, 38, 0.7));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(255, 70, 70, 1)) drop-shadow(0 0 16px rgba(220, 38, 38, 0.9));
+  }
+}
+
+.corner-glow-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 20;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.corner-light {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  animation: cornerGlowPulse 2s ease-in-out infinite;
+}
+
+.corner-light-tl {
+  top: 0;
+  left: 0;
+  border-top: 3px solid #ef4444;
+  border-left: 3px solid #ef4444;
+  border-top-left-radius: 14px;
+  box-shadow: -2px -2px 10px rgba(239, 68, 68, 0.8), inset 2px 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+.corner-light-tr {
+  top: 0;
+  right: 0;
+  border-top: 3px solid #ef4444;
+  border-right: 3px solid #ef4444;
+  border-top-right-radius: 14px;
+  box-shadow: 2px -2px 10px rgba(239, 68, 68, 0.8), inset -2px 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+.corner-light-bl {
+  bottom: 0;
+  left: 0;
+  border-bottom: 3px solid #ef4444;
+  border-left: 3px solid #ef4444;
+  border-bottom-left-radius: 14px;
+  box-shadow: -2px 2px 10px rgba(239, 68, 68, 0.8), inset 2px -2px 6px rgba(239, 68, 68, 0.4);
+}
+
+.corner-light-br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 3px solid #ef4444;
+  border-right: 3px solid #ef4444;
+  border-bottom-right-radius: 14px;
+  box-shadow: 2px 2px 10px rgba(239, 68, 68, 0.8), inset -2px -2px 6px rgba(239, 68, 68, 0.4);
+}
+
+.corner-light::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 6px 2px #ef4444, 0 0 14px 4px #dc2626;
+}
+.corner-light-tl::after { top: -2px; left: -2px; }
+.corner-light-tr::after { top: -2px; right: -2px; }
+.corner-light-bl::after { bottom: -2px; left: -2px; }
+.corner-light-br::after { bottom: -2px; right: -2px; }
+

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentAdmin } from "@/lib/auth";
+import { getCurrentAdmin, logAdminActivity } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,14 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  return handleUpdateSettings(req);
+}
+
+export async function POST(req: Request) {
+  return handleUpdateSettings(req);
+}
+
+async function handleUpdateSettings(req: Request) {
   try {
     const admin = await getCurrentAdmin();
     if (!admin) {
@@ -35,6 +43,8 @@ export async function PUT(req: Request) {
         });
       }
     }
+
+    await logAdminActivity(admin, "UPDATE_STORE_SETTINGS", "SETTINGS", "store", body);
 
     return NextResponse.json({ success: true, message: "Settings saved successfully" });
   } catch (error) {
