@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Save, CheckCircle2, AlertCircle, Store, Truck, Phone, Settings, Lock, Key, ShieldCheck } from "lucide-react";
+import { Save, CheckCircle2, AlertCircle, Store, Truck, Phone, Settings, Lock, Key, ShieldCheck, Share2, ExternalLink } from "lucide-react";
+import { SOCIAL_PLATFORMS, SocialIcon, SocialPlatformKey, formatSocialUrl } from "@/components/SocialIcons";
 
 interface SettingsMap {
   [key: string]: string;
@@ -273,6 +274,80 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
             </div>
           </div>
         </div>
+
+        {/* Social Media & Direct Communication Accounts */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-brand-600" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  Social Media & Direct Communication Accounts
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure direct links for the floating bottom-right chat widget, footer, and brand channels
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(Object.keys(SOCIAL_PLATFORMS) as SocialPlatformKey[]).map((key) => {
+              const platform = SOCIAL_PLATFORMS[key];
+              const currentValue = settings[platform.settingKey] ?? "";
+              const formattedUrl = formatSocialUrl(key, currentValue || platform.defaultUrl);
+
+              return (
+                <div
+                  key={key}
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3 hover:border-slate-300 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-8 h-8 rounded-xl ${platform.bgClass} text-white flex items-center justify-center shadow-xs shrink-0`}
+                      >
+                        <SocialIcon platform={key} className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block leading-tight">
+                          {platform.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {platform.description}
+                        </span>
+                      </div>
+                    </div>
+
+                    <a
+                      href={formattedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-brand-600 transition-colors bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs shrink-0"
+                      title="Test this link in a new tab"
+                    >
+                      <span>Open Link</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                      {platform.name} {key === "whatsapp" ? "Hotline Number / wa.me Link" : "Profile / Page URL"}
+                    </label>
+                    <input
+                      type="text"
+                      value={settings[platform.settingKey] !== undefined ? settings[platform.settingKey] : platform.defaultUrl}
+                      onChange={(e) => handleChange(platform.settingKey, e.target.value)}
+                      placeholder={platform.placeholder}
+                      className="w-full text-xs bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </form>
 
@@ -357,7 +432,7 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
 
           <div className="flex items-center justify-between pt-2">
             <p className="text-[11px] text-slate-400">
-              Tip: The initial default password is <code className="text-slate-700 font-bold">admin123</code>.
+              Tip: Use at least 6 characters with a combination of letters, numbers, and symbols.
             </p>
 
             <button

@@ -12,14 +12,17 @@ export default async function AdminContentPage() {
     redirect("/admin/login");
   }
 
-  const [banners, announcementSetting] = await Promise.all([
+  const [banners, settingsList] = await Promise.all([
     prisma.banner.findMany({
       orderBy: { orderIndex: "asc" },
     }),
-    prisma.storeSetting.findUnique({
-      where: { key: "announcement_text" },
-    }),
+    prisma.storeSetting.findMany(),
   ]);
+
+  const settingsMap: Record<string, string> = {};
+  settingsList.forEach((s) => {
+    settingsMap[s.key] = s.value;
+  });
 
   const formattedBanners = banners.map((b) => ({
     ...b,
@@ -30,7 +33,8 @@ export default async function AdminContentPage() {
   return (
     <ContentClient
       initialBanners={formattedBanners}
-      initialAnnouncement={announcementSetting?.value || ""}
+      initialAnnouncement={settingsMap["announcement_text"] || ""}
+      initialSettings={settingsMap}
     />
   );
 }

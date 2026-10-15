@@ -1,8 +1,30 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Zap, Phone, Mail, MapPin, ShieldCheck, Truck, RefreshCw, HeartHandshake } from "lucide-react";
+import { SOCIAL_PLATFORMS, SocialIcon, SocialPlatformKey, formatSocialUrl } from "./SocialIcons";
 
 export function Footer() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data === "object") setSettings(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const socialKeys: SocialPlatformKey[] = [
+    "whatsapp",
+    "facebook",
+    "messenger",
+    "instagram",
+    "tiktok",
+    "youtube",
+  ];
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
       {/* Trust Features Bar */}
@@ -71,6 +93,34 @@ export function Footer() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Verified Store
               </span>
               <span>Trade License: TRAD/DNCC/02194</span>
+            </div>
+
+            {/* Official Social Media Channels */}
+            <div className="pt-2">
+              <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-2.5">
+                Connect With Us
+              </span>
+              <div className="flex items-center flex-wrap gap-2.5">
+                {socialKeys.map((key) => {
+                  const config = SOCIAL_PLATFORMS[key];
+                  const raw = settings[config.settingKey] || config.defaultUrl;
+                  const finalUrl = formatSocialUrl(key, raw);
+
+                  return (
+                    <a
+                      key={key}
+                      href={finalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-9 h-9 rounded-xl ${config.bgClass} ${config.hoverClass} text-white flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-95`}
+                      title={`${config.name} - ${config.description}`}
+                      aria-label={config.ariaLabel}
+                    >
+                      <SocialIcon platform={key} className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

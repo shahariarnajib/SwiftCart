@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { formatCurrency } from "@/lib/format";
 import {
@@ -14,6 +14,17 @@ import {
   Megaphone,
   Save,
   Image as ImageIcon,
+  UploadCloud,
+  Loader2,
+  ExternalLink,
+  Eye,
+  User,
+  Quote,
+  Sparkles,
+  BookOpen,
+  Mail,
+  Linkedin,
+  Facebook,
 } from "lucide-react";
 
 interface BannerItem {
@@ -33,14 +44,62 @@ interface BannerItem {
 export function ContentClient({
   initialBanners,
   initialAnnouncement,
+  initialSettings = {},
 }: {
   initialBanners: BannerItem[];
   initialAnnouncement: string;
+  initialSettings?: Record<string, string>;
 }) {
   const [banners, setBanners] = useState<BannerItem[]>(initialBanners);
   const [announcement, setAnnouncement] = useState(initialAnnouncement);
   const [isSavingAnnounce, setIsSavingAnnounce] = useState(false);
   const [announceToast, setAnnounceToast] = useState<string | null>(null);
+
+  // Founder Section State
+  const [founderName, setFounderName] = useState(
+    initialSettings["founder_name"] || "Md. Sajedul Alam"
+  );
+  const [founderRole, setFounderRole] = useState(
+    initialSettings["founder_role"] || "Founder & CEO, Swift Cart"
+  );
+  const [founderImage, setFounderImage] = useState(
+    initialSettings["founder_image"] ||
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80"
+  );
+  const [founderBadge, setFounderBadge] = useState(
+    initialSettings["founder_badge"] || "Established 2024 • Chittagong, BD"
+  );
+  const [founderBio, setFounderBio] = useState(
+    initialSettings["founder_bio"] ||
+      "Tech entrepreneur and e-commerce innovator passionate about authentic consumer electronics and dependable fulfillment in Bangladesh."
+  );
+  const [founderQuote, setFounderQuote] = useState(
+    initialSettings["founder_quote"] ||
+      "We didn't build Swift Cart just to sell products; we built it to restore trust, authenticity, and speed to online shopping across all 64 districts in Bangladesh."
+  );
+  const [founderStory, setFounderStory] = useState(
+    initialSettings["founder_story"] ||
+      "The idea for Swift Cart began in Chawkbazar, Chittagong. Like thousands of shoppers across Bangladesh, I was constantly frustrated by online orders that arrived late, lacked official warranties, or were grey-market replicas.\n\nI believed Bangladeshi consumers deserved a store they could trust without second thought: a platform that inspects every product serial number, partners with official warranty distributors, and dispatches parcels with Cash on Delivery in 24-48 hours.\n\nFrom our fulfillment center in Chittagong, we have built Swift Cart into a platform built on speed, authenticity, and unwavering customer care."
+  );
+  const [founderVision, setFounderVision] = useState(
+    initialSettings["founder_vision"] ||
+      "To be Bangladesh's most reliable e-commerce store where speed, authenticity, and customer happiness are non-negotiable standards."
+  );
+  const [founderLinkedin, setFounderLinkedin] = useState(
+    initialSettings["founder_linkedin"] || "https://linkedin.com"
+  );
+  const [founderEmail, setFounderEmail] = useState(
+    initialSettings["founder_email"] || "founder@swiftcart.com"
+  );
+  const [founderFacebook, setFounderFacebook] = useState(
+    initialSettings["founder_facebook"] || "https://facebook.com/swiftcartbd"
+  );
+
+  const [isSavingFounder, setIsSavingFounder] = useState(false);
+  const [founderToast, setFounderToast] = useState<string | null>(null);
+  const [isUploadingFounderImage, setIsUploadingFounderImage] = useState(false);
+  const [founderUploadError, setFounderUploadError] = useState<string | null>(null);
+  const founderFileInputRef = useRef<HTMLInputElement>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,9 +114,121 @@ export function ContentClient({
   const [orderIndex, setOrderIndex] = useState(1);
   const [isActive, setIsActive] = useState(true);
 
+  // Upload State
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const handleFounderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingFounderImage(true);
+    setFounderUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", files[0]);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload founder photo.");
+      }
+
+      const uploadedUrl = data.url || data.urls?.[0];
+      if (uploadedUrl) {
+        setFounderImage(uploadedUrl);
+      }
+    } catch (err: any) {
+      setFounderUploadError(err.message || "Failed to upload founder photo.");
+    } finally {
+      setIsUploadingFounderImage(false);
+      if (founderFileInputRef.current) {
+        founderFileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleSaveFounder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingFounder(true);
+    setFounderToast(null);
+
+    try {
+      const payload = {
+        founder_name: founderName.trim(),
+        founder_role: founderRole.trim(),
+        founder_image: founderImage.trim(),
+        founder_badge: founderBadge.trim(),
+        founder_bio: founderBio.trim(),
+        founder_quote: founderQuote.trim(),
+        founder_story: founderStory.trim(),
+        founder_vision: founderVision.trim(),
+        founder_linkedin: founderLinkedin.trim(),
+        founder_email: founderEmail.trim(),
+        founder_facebook: founderFacebook.trim(),
+      };
+
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to save founder profile");
+
+      setFounderToast("Founder profile & story updated on About Us page!");
+      setTimeout(() => setFounderToast(null), 4000);
+    } catch (err: any) {
+      alert(err.message || "Error saving founder profile");
+    } finally {
+      setIsSavingFounder(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", files[0]);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload banner image.");
+      }
+
+      const uploadedUrl = data.url || data.urls?.[0];
+      if (uploadedUrl) {
+        setImageUrl(uploadedUrl);
+      }
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to upload banner image.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingBanner(null);
@@ -70,6 +241,8 @@ export function ContentClient({
     setOrderIndex(banners.length + 1);
     setIsActive(true);
     setErrorMsg(null);
+    setUploadError(null);
+    setIsUploading(false);
     setIsModalOpen(true);
   };
 
@@ -84,6 +257,8 @@ export function ContentClient({
     setOrderIndex(b.orderIndex);
     setIsActive(b.isActive);
     setErrorMsg(null);
+    setUploadError(null);
+    setIsUploading(false);
     setIsModalOpen(true);
   };
 
@@ -254,8 +429,8 @@ export function ContentClient({
                 key={b.id}
                 className="rounded-2xl border border-slate-200 overflow-hidden shadow-xs flex flex-col justify-between bg-slate-50/50"
               >
-                <div className="relative h-44 w-full bg-slate-900">
-                  <Image src={b.imageUrl} alt={b.title} fill className="object-cover opacity-80" />
+                <div className="relative h-44 w-full bg-slate-900 overflow-hidden">
+                  <img src={b.imageUrl} alt={b.title} className="w-full h-full object-cover opacity-85" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-4 flex flex-col justify-end text-white">
                     {b.badge && (
                       <span className="text-[10px] font-black uppercase tracking-wider text-brand-400">
@@ -306,7 +481,328 @@ export function ContentClient({
         )}
       </div>
 
-      {/* Banner Create & Edit Modal */}
+      {/* Founder Profile & Brand Story (About Us Page) */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <User className="w-4 h-4 text-brand-600" />
+              <span>Founder Profile & Story Behind Swift Cart (About Us Page)</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Manage founder portrait photo, leadership bio, quote, and brand origin narrative
+            </p>
+          </div>
+
+          <a
+            href="/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-brand-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors shrink-0"
+          >
+            <span>Preview About Page</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
+        {founderToast && (
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{founderToast}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSaveFounder} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Founder Photo Column */}
+            <div className="lg:col-span-4 space-y-3">
+              <label className="text-xs font-bold text-slate-700 block">
+                Founder Portrait Photo *
+              </label>
+
+              <input
+                ref={founderFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,image/avif"
+                onChange={handleFounderImageUpload}
+                className="hidden"
+              />
+
+              {founderUploadError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{founderUploadError}</span>
+                </div>
+              )}
+
+              {founderImage ? (
+                <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-900 shadow-xs space-y-0">
+                  <div className="relative h-60 w-full overflow-hidden bg-slate-800">
+                    <img
+                      src={founderImage}
+                      alt={founderName}
+                      className="w-full h-full object-cover object-top"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                      <span className="text-[10px] font-bold text-white bg-brand-600/90 px-2 py-0.5 rounded-md">
+                        {founderBadge}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => founderFileInputRef.current?.click()}
+                          disabled={isUploadingFounderImage}
+                          className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-900 text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1"
+                        >
+                          <UploadCloud className="w-3 h-3" />
+                          <span>Replace</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFounderImage("")}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-[11px] font-bold shadow-xs transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 border-t border-slate-200 text-[11px] font-mono text-slate-500 truncate">
+                    {founderImage}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => founderFileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
+                    isUploadingFounderImage
+                      ? "border-brand-400 bg-brand-50/50 cursor-wait"
+                      : "border-slate-300 hover:border-brand-500 hover:bg-brand-50/20 bg-slate-50/50"
+                  }`}
+                >
+                  {isUploadingFounderImage ? (
+                    <>
+                      <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
+                      <span className="text-xs font-bold text-brand-700">Uploading photo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center shadow-xs">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">
+                          Click to upload founder photo
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          JPG, PNG, WEBP, GIF up to 10MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="mt-1 px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs"
+                      >
+                        Choose Photo
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">
+                  Or specify photo URL directly
+                </label>
+                <input
+                  type="url"
+                  value={founderImage}
+                  onChange={(e) => setFounderImage(e.target.value)}
+                  placeholder="https://images.unsplash.com/... or custom URL"
+                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-800 bg-slate-50 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Founder Identity & Bio */}
+            <div className="lg:col-span-8 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Founder Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={founderName}
+                    onChange={(e) => setFounderName(e.target.value)}
+                    placeholder="e.g. Md. Sajedul Alam"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Role / Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={founderRole}
+                    onChange={(e) => setFounderRole(e.target.value)}
+                    placeholder="e.g. Founder & CEO, Swift Cart"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Badge / Founding Tagline
+                </label>
+                <input
+                  type="text"
+                  value={founderBadge}
+                  onChange={(e) => setFounderBadge(e.target.value)}
+                  placeholder="e.g. Established 2024 • Chittagong, BD"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Founder Short Bio / Summary
+                </label>
+                <textarea
+                  rows={2}
+                  value={founderBio}
+                  onChange={(e) => setFounderBio(e.target.value)}
+                  placeholder="Brief 1-2 sentence background of the founder..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Founder&apos;s Featured Quote
+                </label>
+                <textarea
+                  rows={2}
+                  value={founderQuote}
+                  onChange={(e) => setFounderQuote(e.target.value)}
+                  placeholder="Personal motto or key quote regarding Swift Cart..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none font-medium italic"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Full Narrative: The Story Behind Swift Cart */}
+          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 block">
+                The Story Behind Swift Cart (Full Narrative) *
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Separate paragraphs with a blank line
+              </span>
+            </div>
+            <textarea
+              rows={6}
+              required
+              value={founderStory}
+              onChange={(e) => setFounderStory(e.target.value)}
+              placeholder="Tell the full story of why Swift Cart was founded, the early days in Chittagong, the challenges observed in BD e-commerce, and our commitment to authentic items..."
+              className="w-full p-4 rounded-2xl border border-slate-200 text-xs text-slate-800 leading-relaxed font-sans"
+            />
+          </div>
+
+          {/* Vision Statement */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 block">
+              Founder Vision & Mission Statement
+            </label>
+            <textarea
+              rows={2}
+              value={founderVision}
+              onChange={(e) => setFounderVision(e.target.value)}
+              placeholder="Our forward-looking vision for online shopping in Bangladesh..."
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none"
+            />
+          </div>
+
+          {/* Founder Contact & Social Media Links */}
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            <label className="text-xs font-bold text-slate-700 block">
+              Founder Direct Connect & Social Links
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 block mb-1">
+                  Direct Email
+                </span>
+                <input
+                  type="email"
+                  value={founderEmail}
+                  onChange={(e) => setFounderEmail(e.target.value)}
+                  placeholder="founder@swiftcart.com"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 block mb-1">
+                  LinkedIn URL
+                </span>
+                <input
+                  type="url"
+                  value={founderLinkedin}
+                  onChange={(e) => setFounderLinkedin(e.target.value)}
+                  placeholder="https://linkedin.com/in/..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 block mb-1">
+                  Facebook Profile URL
+                </span>
+                <input
+                  type="url"
+                  value={founderFacebook}
+                  onChange={(e) => setFounderFacebook(e.target.value)}
+                  placeholder="https://facebook.com/..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-xs text-slate-400">
+              Changes will immediately reflect on the public <code className="text-brand-600 font-bold">/about</code> page.
+            </p>
+
+            <button
+              type="submit"
+              disabled={isSavingFounder}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-lg shadow-brand-600/30 transition-all active:scale-95 disabled:opacity-60"
+            >
+              {isSavingFounder ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving Changes...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Founder Profile & Story</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
@@ -412,18 +908,141 @@ export function ContentClient({
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Banner Image URL *
-                </label>
+              {/* Banner Image Upload & Preview */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Banner Image *
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    Recommended: 1920x600 or 1200x500 (Max 10MB)
+                  </span>
+                </div>
+
+                {/* Hidden file input */}
                 <input
-                  type="url"
-                  required
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/... or Supabase Storage URL"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono text-slate-800"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,image/avif"
+                  onChange={handleFileUpload}
+                  className="hidden"
                 />
+
+                {uploadError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
+                {!imageUrl ? (
+                  /* Upload Box / Dropzone */
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
+                      isUploading
+                        ? "border-brand-400 bg-brand-50/50 cursor-wait"
+                        : "border-slate-300 hover:border-brand-500 hover:bg-brand-50/20 bg-slate-50/50"
+                    }`}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
+                        <span className="text-xs font-bold text-brand-700">
+                          Uploading image to server...
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          Please wait while your image is being processed
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center shadow-xs">
+                          <UploadCloud className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">
+                            Click to upload banner image
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Supports JPG, PNG, WEBP, GIF, SVG up to 10MB
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="mt-1 px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs"
+                        >
+                          Choose Image File
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  /* Uploaded Image Preview & Actions */
+                  <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-900 shadow-xs space-y-0">
+                    <div className="relative h-40 w-full overflow-hidden">
+                      <img
+                        src={imageUrl}
+                        alt="Uploaded Banner Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent p-3 flex items-end justify-between">
+                        <div className="text-white max-w-xs">
+                          {badge && (
+                            <span className="text-[9px] font-black uppercase text-brand-400 tracking-wider">
+                              {badge}
+                            </span>
+                          )}
+                          <p className="text-xs font-bold truncate">{title || "Slide Title Preview"}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-900 text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1"
+                          >
+                            <UploadCloud className="w-3 h-3" />
+                            <span>Replace</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setImageUrl("")}
+                            className="px-2.5 py-1 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-[11px] font-bold shadow-xs transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+                      <span className="font-mono truncate max-w-[280px]">{imageUrl}</span>
+                      <span className="text-emerald-600 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Ready</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Secondary Option: Manual URL input */}
+                <div className="pt-1">
+                  <details className="text-[11px] text-slate-500 cursor-pointer">
+                    <summary className="font-semibold text-slate-600 hover:text-brand-600 select-none">
+                      Or specify image by URL instead
+                    </summary>
+                    <div className="mt-2">
+                      <input
+                        type="url"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="https://images.unsplash.com/... or custom URL"
+                        className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-800 bg-white"
+                      />
+                    </div>
+                  </details>
+                </div>
               </div>
 
               <div className="pt-2 flex items-center justify-between border-t border-slate-100">

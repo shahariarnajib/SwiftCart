@@ -7,7 +7,7 @@ import { Zap, Lock, User, AlertCircle, ArrowRight } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export default function AdminLoginPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
+                  placeholder="Enter username or email"
                   className="w-full text-sm bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-500"
                 />
                 <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -93,31 +93,10 @@ export default function AdminLoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Enter password"
                   className="w-full text-sm bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-500"
                 />
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            {/* Default Credentials Helper */}
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-300">Initial Default Credentials:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUsername("admin");
-                    setPassword("admin123");
-                  }}
-                  className="text-[10px] font-bold text-brand-400 hover:text-brand-300 underline"
-                >
-                  Autofill Default
-                </button>
-              </div>
-              <div className="mt-1 flex items-center justify-between font-mono text-slate-400">
-                <span>Username: <strong className="text-brand-400">admin</strong></span>
-                <span>Password: <strong className="text-brand-400">admin123</strong></span>
               </div>
             </div>
 

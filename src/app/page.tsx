@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
+import { HeroSlider } from "@/components/HeroSlider";
 import {
   Zap,
   ArrowRight,
@@ -19,7 +20,7 @@ import {
 export const revalidate = 60; // Revalidate every 60 seconds
 
 async function getHomeData() {
-  const [categories, featuredProducts, newArrivals] = await Promise.all([
+  const [categories, featuredProducts, newArrivals, heroBanners] = await Promise.all([
     prisma.category.findMany({
       where: { isVisible: true },
       orderBy: { orderIndex: "asc" },
@@ -47,141 +48,22 @@ async function getHomeData() {
         images: { orderBy: { orderIndex: "asc" } },
       },
     }),
+    prisma.banner.findMany({
+      where: { section: "HERO", isActive: true },
+      orderBy: { orderIndex: "asc" },
+    }),
   ]);
 
-  return { categories, featuredProducts, newArrivals };
+  return { categories, featuredProducts, newArrivals, heroBanners };
 }
 
 export default async function HomePage() {
-  const { categories, featuredProducts, newArrivals } = await getHomeData();
+  const { categories, featuredProducts, newArrivals, heroBanners } = await getHomeData();
 
   return (
     <div className="flex flex-col gap-12 sm:gap-16 lg:gap-20 pb-16">
-      {/* 1. HERO SECTION */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-brand-50/60 via-white to-white pt-8 pb-14 lg:py-20 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Content */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-100/70 border border-brand-200 text-brand-700 text-xs sm:text-sm font-bold tracking-wide">
-                <span className="w-2 h-2 rounded-full bg-brand-600 animate-ping"></span>
-                <span>Swift Cart Bangladesh • Fast Nationwide Delivery</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
-                Shop Smarter. <br />
-                <span className="text-brand-600 relative inline-block">
-                  Shop Faster.
-                  <svg
-                    className="absolute -bottom-2 left-0 w-full h-3 text-brand-300 -z-10"
-                    viewBox="0 0 100 20"
-                    preserveAspectRatio="none"
-                  >
-                    <path
-                      d="M0 10 Q 50 20 100 10"
-                      stroke="currentColor"
-                      strokeWidth="6"
-                      fill="transparent"
-                    />
-                  </svg>
-                </span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                Discover premium quality gadgets, electronics, lifestyle gear, and home essentials at
-                unbeatable prices. Delivered directly to your doorstep with Cash on Delivery.
-              </p>
-
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-                <Link
-                  href="/shop"
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-base shadow-xl shadow-brand-600/30 hover:shadow-brand-600/40 transition-all flex items-center justify-center gap-2 group active:scale-95"
-                >
-                  <ShoppingBag className="w-5 h-5" />
-                  <span>Shop Now</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  href="/shop?sort=price_desc"
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-base border-2 border-slate-200 transition-all flex items-center justify-center gap-2"
-                >
-                  <span>Explore Products</span>
-                </Link>
-              </div>
-
-              {/* Key Trust Highlights */}
-              <div className="pt-6 grid grid-cols-3 gap-3 border-t border-slate-200/70 max-w-lg mx-auto lg:mx-0">
-                <div className="flex flex-col items-center lg:items-start">
-                  <span className="text-xl sm:text-2xl font-black text-slate-900">৳2,500+</span>
-                  <span className="text-xs text-slate-500 font-medium">Free Delivery</span>
-                </div>
-                <div className="flex flex-col items-center lg:items-start border-x border-slate-200 px-3">
-                  <span className="text-xl sm:text-2xl font-black text-slate-900">100%</span>
-                  <span className="text-xs text-slate-500 font-medium">Authentic Items</span>
-                </div>
-                <div className="flex flex-col items-center lg:items-start">
-                  <span className="text-xl sm:text-2xl font-black text-slate-900">24-48h</span>
-                  <span className="text-xs text-slate-500 font-medium">Fast Dispatch</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Visual Composition */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto max-w-md lg:max-w-none">
-                {/* Background decorative blob */}
-                <div className="absolute -inset-4 bg-gradient-to-tr from-brand-600/10 to-brand-500/20 rounded-3xl blur-2xl -z-10"></div>
-
-                <div className="relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-white aspect-[4/3] sm:aspect-[1/1]">
-                  <Image
-                    src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1000&q=80"
-                    alt="Swift Cart Featured Collection"
-                    fill
-                    priority
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div>
-
-                  <div className="absolute bottom-6 left-6 right-6 text-white">
-                    <span className="inline-block px-3 py-1 rounded-full bg-brand-600 text-white text-xs font-black uppercase tracking-wider mb-2">
-                      Special Offer
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-black leading-tight">
-                      Wireless Audio & Smart Gadgets
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-200 mt-1">
-                      Up to 30% OFF this season with Cash on Delivery.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Floating Badge 1 */}
-                <div className="absolute -bottom-6 -left-6 bg-white p-3.5 rounded-2xl shadow-xl border border-slate-100 hidden sm:flex items-center gap-3 animate-slide-up">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black">
-                    <Truck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">Cash on Delivery</div>
-                    <div className="text-[11px] text-slate-500">Pay upon parcel arrival</div>
-                  </div>
-                </div>
-
-                {/* Floating Badge 2 */}
-                <div className="absolute -top-4 -right-4 bg-white p-3.5 rounded-2xl shadow-xl border border-slate-100 hidden sm:flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
-                    <Zap className="w-5 h-5 fill-brand-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">Swift Express</div>
-                    <div className="text-[11px] text-slate-500">Chawkbazar, Chittagong</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 1. TOP HERO SLIDER BANNER */}
+      <HeroSlider banners={heroBanners} />
 
       {/* 2. FEATURED CATEGORIES SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">

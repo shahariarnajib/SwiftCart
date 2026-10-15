@@ -44,16 +44,18 @@ export async function POST(req: Request) {
       isActive,
     } = body;
 
-    if (!title || !imageUrl) {
+    if (!imageUrl) {
       return NextResponse.json(
-        { error: "Banner title and image URL are required." },
+        { error: "Banner image is required." },
         { status: 400 }
       );
     }
 
+    const bannerTitle = (title && title.trim()) ? title.trim() : "Banner Slide";
+
     const banner = await prisma.banner.create({
       data: {
-        title,
+        title: bannerTitle,
         subtitle: subtitle || null,
         badge: badge || null,
         buttonText: buttonText || "Shop Now",

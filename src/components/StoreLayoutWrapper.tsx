@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { Toast } from "./Toast";
+import { FloatingWhatsAppAndSocial } from "./FloatingWhatsAppAndSocial";
 
 export function StoreLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -24,6 +25,7 @@ export function StoreLayoutWrapper({ children }: { children: React.ReactNode }) 
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      <FloatingWhatsAppAndSocial />
       <Toast />
     </div>
   );

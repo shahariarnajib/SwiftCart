@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { formatCurrency } from "@/lib/format";
+import { SOCIAL_PLATFORMS, SocialIcon, SocialPlatformKey, formatSocialUrl } from "./SocialIcons";
 
 interface CategoryNavItem {
   id: string;
@@ -29,6 +30,7 @@ export function Header() {
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<CategoryNavItem[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [isScrolled, setIsScrolled] = useState(false);
 
   // Close menus on route change
@@ -46,13 +48,22 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Fetch categories for menu
+  // Fetch categories and settings for menu
   useEffect(() => {
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
           setCategories(data);
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data === "object") {
+          setSettings(data);
         }
       })
       .catch(() => {});
@@ -332,15 +343,36 @@ export function Header() {
               </div>
             </div>
 
-            <div className="mt-auto pt-6 border-t border-slate-100 space-y-3">
-              <div className="text-center text-xs text-slate-400">
+            <div className="mt-auto pt-6 border-t border-slate-100 space-y-4">
+              <div className="flex items-center justify-center gap-2">
+                {(["whatsapp", "facebook", "messenger", "instagram", "tiktok", "youtube"] as SocialPlatformKey[]).map((key) => {
+                  const config = SOCIAL_PLATFORMS[key];
+                  const raw = settings[config.settingKey] || config.defaultUrl;
+                  const finalUrl = formatSocialUrl(key, raw);
+                  return (
+                    <a
+                      key={key}
+                      href={finalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-8 h-8 rounded-lg ${config.bgClass} text-white flex items-center justify-center shadow-xs transition-transform hover:scale-110 active:scale-95`}
+                      aria-label={config.ariaLabel}
+                      title={config.name}
+                    >
+                      <SocialIcon platform={key} className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
+              <div className="text-center text-xs text-slate-500">
                 <a
-                  href="https://wa.me/8801925613994"
+                  href={formatSocialUrl("whatsapp", settings["social_whatsapp"] || settings["contact_phone"] || "+8801925613994")}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-emerald-500 font-semibold transition-colors"
+                  className="hover:text-emerald-600 font-bold transition-colors inline-flex items-center gap-1.5"
                 >
-                  WhatsApp & Hotline: +8801925613994
+                  <span className="w-2 h-2 rounded-full bg-[#25D366]"></span>
+                  <span>WhatsApp: {settings["social_whatsapp"] || settings["contact_phone"] || "+8801925613994"}</span>
                 </a>
               </div>
             </div>
