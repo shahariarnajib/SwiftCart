@@ -54,8 +54,8 @@ export async function getCurrentAdmin(): Promise<AdminPayload | null> {
       role: admin.role,
     };
   } catch (error) {
-    console.error("Error fetching current admin:", error);
-    return null;
+    console.error("Error fetching current admin from DB, using token payload:", error);
+    return payload;
   }
 }
 

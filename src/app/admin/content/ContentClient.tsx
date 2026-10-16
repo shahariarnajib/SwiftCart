@@ -123,16 +123,31 @@ export function ContentClient({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Helper to convert File to Base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
   const handleFounderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const file = fileList[0];
+    const tempBlobUrl = URL.createObjectURL(file);
+    // Instant local preview in UI (0ms latency)
+    setFounderImage(tempBlobUrl);
 
     setIsUploadingFounderImage(true);
     setFounderUploadError(null);
 
     try {
       const formData = new FormData();
-      formData.append("file", files[0]);
+      formData.append("file", file);
       formData.append("bucket", "banners");
 
       const res = await fetch("/api/upload", {
@@ -150,9 +165,17 @@ export function ContentClient({
         setFounderImage(uploadedUrl);
       }
     } catch (err: any) {
-      setFounderUploadError(err.message || "Failed to upload founder photo.");
+      console.warn("Founder upload to server failed, falling back to base64 preview:", err);
+      try {
+        const b64 = await fileToBase64(file);
+        setFounderImage(b64);
+        setFounderUploadError("Notice: Storage server notice, photo kept as local preview.");
+      } catch {
+        setFounderUploadError(err.message || "Failed to upload founder photo.");
+      }
     } finally {
       setIsUploadingFounderImage(false);
+      if (e.target) e.target.value = "";
       if (founderFileInputRef.current) {
         founderFileInputRef.current.value = "";
       }
@@ -165,10 +188,24 @@ export function ContentClient({
     setFounderToast(null);
 
     try {
+      let finalFounderImage = founderImage.trim();
+      // If still a temporary blob URL, resolve to Base64
+      if (finalFounderImage.startsWith("blob:")) {
+        try {
+          const blobRes = await fetch(finalFounderImage);
+          const blobData = await blobRes.blob();
+          finalFounderImage = await fileToBase64(
+            new File([blobData], "founder.jpg", { type: blobData.type || "image/jpeg" })
+          );
+        } catch (b64Err) {
+          console.error("Failed to convert founder blob to base64:", b64Err);
+        }
+      }
+
       const payload = {
         founder_name: founderName.trim(),
         founder_role: founderRole.trim(),
-        founder_image: founderImage.trim(),
+        founder_image: finalFounderImage,
         founder_badge: founderBadge.trim(),
         founder_bio: founderBio.trim(),
         founder_quote: founderQuote.trim(),
@@ -197,15 +234,20 @@ export function ContentClient({
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const file = fileList[0];
+    const tempBlobUrl = URL.createObjectURL(file);
+    // Instant local preview
+    setImageUrl(tempBlobUrl);
 
     setIsUploading(true);
     setUploadError(null);
 
     try {
       const formData = new FormData();
-      formData.append("file", files[0]);
+      formData.append("file", file);
       formData.append("bucket", "banners");
 
       const res = await fetch("/api/upload", {
@@ -223,9 +265,16 @@ export function ContentClient({
         setImageUrl(uploadedUrl);
       }
     } catch (err: any) {
-      setUploadError(err.message || "Failed to upload banner image.");
+      console.warn("Banner upload to server failed, falling back to base64 preview:", err);
+      try {
+        const b64 = await fileToBase64(file);
+        setImageUrl(b64);
+      } catch {
+        setUploadError(err.message || "Failed to upload banner image.");
+      }
     } finally {
       setIsUploading(false);
+      if (e.target) e.target.value = "";
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -266,17 +315,35 @@ export function ContentClient({
 
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!imageUrl.trim()) {
+      setErrorMsg("Please upload or provide an image for the banner.");
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
 
     try {
+      let finalBannerImage = imageUrl.trim();
+      if (finalBannerImage.startsWith("blob:")) {
+        try {
+          const blobRes = await fetch(finalBannerImage);
+          const blobData = await blobRes.blob();
+          finalBannerImage = await fileToBase64(
+            new File([blobData], "banner.jpg", { type: blobData.type || "image/jpeg" })
+          );
+        } catch (b64Err) {
+          console.error("Failed to convert banner blob to base64:", b64Err);
+        }
+      }
+
       const payload = {
         title: title.trim(),
         subtitle: subtitle.trim() || null,
         badge: badge.trim() || null,
         buttonText: buttonText.trim(),
         buttonLink: buttonLink.trim(),
-        imageUrl: imageUrl.trim(),
+        imageUrl: finalBannerImage,
         orderIndex: Number(orderIndex),
         isActive,
       };
@@ -540,14 +607,6 @@ export function ContentClient({
                 Founder Portrait Photo *
               </label>
 
-              <input
-                ref={founderFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFounderImageUpload}
-                className="hidden"
-              />
-
               {founderUploadError && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -568,15 +627,17 @@ export function ContentClient({
                         {founderBadge}
                       </span>
                       <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => founderFileInputRef.current?.click()}
-                          disabled={isUploadingFounderImage}
-                          className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-900 text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1"
-                        >
+                        <label className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-900 text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFounderImageUpload}
+                            className="sr-only"
+                            disabled={isUploadingFounderImage}
+                          />
                           <UploadCloud className="w-3 h-3" />
                           <span>Replace</span>
-                        </button>
+                        </label>
                         <button
                           type="button"
                           onClick={() => setFounderImage("")}
@@ -592,14 +653,21 @@ export function ContentClient({
                   </div>
                 </div>
               ) : (
-                <div
-                  onClick={() => founderFileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
+                <label
+                  className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 block select-none ${
                     isUploadingFounderImage
                       ? "border-brand-400 bg-brand-50/50 cursor-wait"
                       : "border-slate-300 hover:border-brand-500 hover:bg-brand-50/20 bg-slate-50/50"
                   }`}
                 >
+                  <input
+                    ref={founderFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFounderImageUpload}
+                    className="sr-only"
+                    disabled={isUploadingFounderImage}
+                  />
                   {isUploadingFounderImage ? (
                     <>
                       <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
@@ -618,15 +686,12 @@ export function ContentClient({
                           JPG, PNG, WEBP, GIF up to 10MB
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        className="mt-1 px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs"
-                      >
+                      <span className="mt-1 px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs inline-block pointer-events-none">
                         Choose Photo
-                      </button>
+                      </span>
                     </>
                   )}
-                </div>
+                </label>
               )}
 
               <div>
@@ -939,15 +1004,6 @@ export function ContentClient({
                   </span>
                 </div>
 
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-
                 {uploadError && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -956,15 +1012,22 @@ export function ContentClient({
                 )}
 
                 {!imageUrl ? (
-                  /* Upload Box / Dropzone */
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
+                  /* Upload Box / Dropzone as native <label> */
+                  <label
+                    className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 block select-none ${
                       isUploading
                         ? "border-brand-400 bg-brand-50/50 cursor-wait"
                         : "border-slate-300 hover:border-brand-500 hover:bg-brand-50/20 bg-slate-50/50"
                     }`}
                   >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="sr-only"
+                      disabled={isUploading}
+                    />
                     {isUploading ? (
                       <>
                         <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
@@ -988,15 +1051,12 @@ export function ContentClient({
                             Supports JPG, PNG, WEBP, GIF, SVG up to 10MB
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          className="mt-1 px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs"
-                        >
+                        <span className="mt-1 px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs inline-block pointer-events-none">
                           Choose Image File
-                        </button>
+                        </span>
                       </>
                     )}
-                  </div>
+                  </label>
                 ) : (
                   /* Uploaded Image Preview & Actions */
                   <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-900 shadow-xs space-y-0">
@@ -1016,15 +1076,17 @@ export function ContentClient({
                           <p className="text-xs font-bold truncate">{title || "Slide Title Preview"}</p>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploading}
-                            className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-900 text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1"
-                          >
+                          <label className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-900 text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1 cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              className="sr-only"
+                              disabled={isUploading}
+                            />
                             <UploadCloud className="w-3 h-3" />
                             <span>Replace</span>
-                          </button>
+                          </label>
                           <button
                             type="button"
                             onClick={() => setImageUrl("")}

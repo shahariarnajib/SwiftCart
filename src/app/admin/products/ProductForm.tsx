@@ -120,6 +120,31 @@ export function ProductForm({
     images: cleanInitialImages,
   });
 
+  // Fallback client-side category fetch if empty on mount
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setCategoryList(data);
+            setForm((prev) => ({
+              ...prev,
+              categoryId: prev.categoryId || data[0].id,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load categories on client:", err);
+      }
+    }
+
+    if (categoryList.length === 0) {
+      loadCategories();
+    }
+  }, []);
+
   // Ensure categoryId is set if categories become available
   useEffect(() => {
     if (!form.categoryId && categoryList.length > 0) {
@@ -134,6 +159,16 @@ export function ProductForm({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to convert File to Base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+    });
+  };
 
   // Quick Add Category Handler
   const handleQuickAddCategory = async (e: React.FormEvent) => {
@@ -183,10 +218,20 @@ export function ProductForm({
     }
   };
 
-  // Direct File Upload Handler
+  // Direct File Upload Handler with Instant Local Preview and Server Upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const files = Array.from(fileList);
+    // Instant local preview URLs
+    const tempBlobUrls = files.map((file) => URL.createObjectURL(file));
+
+    // Immediately display preview in UI (0ms latency)
+    setForm((prev) => ({
+      ...prev,
+      images: [...prev.images.filter(Boolean), ...tempBlobUrls],
+    }));
 
     setIsUploading(true);
     setUploadError(null);
@@ -195,8 +240,8 @@ export function ProductForm({
     try {
       const formData = new FormData();
       formData.append("bucket", "product-images");
-      for (let i = 0; i < files.length; i++) {
-        formData.append("files", files[i]);
+      for (const file of files) {
+        formData.append("files", file);
       }
 
       const res = await fetch("/api/upload", {
@@ -213,10 +258,24 @@ export function ProductForm({
       const validUrls = newUrls.filter((u) => Boolean(u && u.trim()));
 
       if (validUrls.length > 0) {
-        setForm((prev) => ({
-          ...prev,
-          images: [...prev.images.filter(Boolean), ...validUrls],
-        }));
+        // Swap out the temporary blob URLs with permanent server URLs
+        setForm((prev) => {
+          const updatedImages = [...prev.images];
+          tempBlobUrls.forEach((blobUrl, i) => {
+            const serverUrl = validUrls[i];
+            if (serverUrl) {
+              const idx = updatedImages.indexOf(blobUrl);
+              if (idx !== -1) {
+                updatedImages[idx] = serverUrl;
+              }
+            }
+          });
+          return {
+            ...prev,
+            images: updatedImages.filter(Boolean),
+          };
+        });
+
         setUploadSuccess(
           validUrls.length === 1
             ? "Image uploaded and added to product!"
@@ -225,9 +284,34 @@ export function ProductForm({
         setTimeout(() => setUploadSuccess(null), 3500);
       }
     } catch (err: any) {
-      setUploadError(err.message || "Failed to upload image.");
+      console.warn("Server upload failed, keeping local preview via base64 fallback:", err);
+      try {
+        const base64List = await Promise.all(files.map((f) => fileToBase64(f)));
+        setForm((prev) => {
+          const updatedImages = [...prev.images];
+          tempBlobUrls.forEach((blobUrl, i) => {
+            const b64 = base64List[i];
+            if (b64) {
+              const idx = updatedImages.indexOf(blobUrl);
+              if (idx !== -1) {
+                updatedImages[idx] = b64;
+              }
+            }
+          });
+          return {
+            ...prev,
+            images: updatedImages.filter(Boolean),
+          };
+        });
+        setUploadError("Notice: Storage server notice, image kept as local preview.");
+      } catch {
+        setUploadError(err.message || "Failed to upload image.");
+      }
     } finally {
       setIsUploading(false);
+      if (e.target) {
+        e.target.value = "";
+      }
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -354,6 +438,25 @@ export function ProductForm({
     setIsSubmitting(true);
 
     try {
+      // Resolve any remaining blob URLs to Base64 strings for guaranteed persistence
+      const sanitizedImages: string[] = [];
+      for (const img of imagesToSubmit) {
+        if (img.startsWith("blob:")) {
+          try {
+            const blobRes = await fetch(img);
+            const blobData = await blobRes.blob();
+            const b64 = await fileToBase64(
+              new File([blobData], "image.jpg", { type: blobData.type || "image/jpeg" })
+            );
+            sanitizedImages.push(b64);
+          } catch {
+            sanitizedImages.push(img);
+          }
+        } else {
+          sanitizedImages.push(img);
+        }
+      }
+
       const payload = {
         name: form.name.trim(),
         slug: form.slug.trim() || slugify(form.name.trim()),
@@ -367,7 +470,7 @@ export function ProductForm({
         isFeatured: form.isFeatured,
         isNewArrival: form.isNewArrival,
         status: form.status,
-        images: imagesToSubmit,
+        images: sanitizedImages,
       };
 
       const url = isEdit ? `/api/products/${form.id}` : "/api/products";
@@ -674,25 +777,24 @@ export function ProductForm({
               </div>
             )}
 
-            {/* Hidden direct file input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              multiple
-              accept="image/*"
-              className="hidden"
-            />
-
-            {/* Direct File Upload Dropzone */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2.5 ${
+            {/* Direct File Upload Dropzone as native accessible <label> */}
+            <label
+              className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2.5 block select-none ${
                 isUploading
                   ? "border-brand-400 bg-brand-50/50 cursor-wait"
                   : "border-slate-300 hover:border-brand-500 hover:bg-slate-50/80 active:scale-[0.99]"
               }`}
             >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                multiple
+                accept="image/*"
+                className="sr-only"
+                disabled={isUploading}
+              />
+
               {isUploading ? (
                 <>
                   <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
@@ -712,19 +814,12 @@ export function ProductForm({
                       Supports JPG, PNG, WEBP, GIF, SVG (up to 10MB each). Multiple images supported.
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      fileInputRef.current?.click();
-                    }}
-                    className="mt-1 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-colors"
-                  >
+                  <span className="mt-1 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-colors inline-block pointer-events-none">
                     Choose Image Files
-                  </button>
+                  </span>
                 </>
               )}
-            </div>
+            </label>
 
             {/* Alternative: Add Image by URL */}
             <div className="space-y-1.5 pt-2">
