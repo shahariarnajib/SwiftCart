@@ -2,9 +2,10 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/auth";
 import { ProductViewClient } from "./ProductViewClient";
 import { ProductCard } from "@/components/ProductCard";
-import { Sparkles, FileText, CheckCircle2 } from "lucide-react";
+import { Sparkles, FileText, CheckCircle2, Edit3 } from "lucide-react";
 
 export const revalidate = 30;
 
@@ -36,13 +37,16 @@ export async function generateMetadata({ params }: ProductPageProps) {
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = params;
 
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: {
-      category: true,
-      images: { orderBy: { orderIndex: "asc" } },
-    },
-  });
+  const [product, admin] = await Promise.all([
+    prisma.product.findUnique({
+      where: { slug },
+      include: {
+        category: true,
+        images: { orderBy: { orderIndex: "asc" } },
+      },
+    }),
+    getCurrentAdmin(),
+  ]);
 
   if (!product) {
     notFound();
@@ -103,6 +107,26 @@ export default async function ProductPage({ params }: ProductPageProps) {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Admin Quick Action Banner */}
+        {admin && (
+          <div className="mb-6 bg-gradient-to-r from-slate-900 to-slate-950 border border-brand-500/40 rounded-2xl p-4 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white shadow-xl">
+            <div className="flex items-center gap-2.5 text-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <div>
+                <span className="font-bold text-brand-300">Admin Mode ({admin.username}):</span>
+                <span className="text-slate-300 ml-1.5">Need to add images, update pricing, or change specifications for this product?</span>
+              </div>
+            </div>
+            <Link
+              href={`/admin/products/${product.id}/edit`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md shadow-brand-600/30 transition-all self-start sm:self-auto hover:scale-105 active:scale-95 shrink-0"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Edit Product & Images</span>
+            </Link>
+          </div>
+        )}
+
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-6">
           <Link href="/" className="hover:text-brand-600 transition-colors">

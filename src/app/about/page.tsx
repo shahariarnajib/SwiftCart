@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/auth";
 import {
   Zap,
   ShieldCheck,
@@ -17,6 +18,7 @@ import {
   Sparkles,
   MapPin,
   ExternalLink,
+  Edit3,
 } from "lucide-react";
 
 export const metadata = {
@@ -42,13 +44,17 @@ async function getAboutSettings() {
 }
 
 export default async function AboutPage() {
-  const settings = await getAboutSettings();
+  const [settings, admin] = await Promise.all([
+    getAboutSettings(),
+    getCurrentAdmin(),
+  ]);
 
   const founderName = settings["founder_name"] || "Md. Sajedul Alam";
   const founderRole = settings["founder_role"] || "Founder & CEO, Swift Cart";
   const founderImage =
-    settings["founder_image"] ||
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80";
+    settings["founder_image"] && settings["founder_image"].trim().length > 0
+      ? settings["founder_image"].trim()
+      : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80";
   const founderBio =
     settings["founder_bio"] ||
     "Tech entrepreneur and e-commerce innovator passionate about authentic consumer electronics and dependable fulfillment in Bangladesh.";
@@ -91,6 +97,30 @@ export default async function AboutPage() {
           </p>
         </div>
 
+        {/* Admin Quick Action Banner */}
+        {admin && (
+          <div className="bg-gradient-to-r from-slate-900 to-slate-950 border border-brand-500/40 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-3 text-xs text-white">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <div>
+                <span className="font-bold block text-sm text-brand-300">
+                  Admin Logged In ({admin.username})
+                </span>
+                <span className="text-slate-400">
+                  Update the founder portrait photo, leadership bio, quote, or brand origin narrative anytime.
+                </span>
+              </div>
+            </div>
+            <Link
+              href="/admin/content#founder"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all self-start sm:self-auto hover:scale-105 active:scale-95 shrink-0"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>Edit Founder Photo & Story</span>
+            </Link>
+          </div>
+        )}
+
         {/* FOUNDER & STORY BEHIND SWIFT CART SECTION */}
         <section className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-12">
@@ -106,12 +136,22 @@ export default async function AboutPage() {
                 </div>
 
                 {/* Founder Photo */}
-                <div className="relative mx-auto lg:mx-0 w-48 h-48 sm:w-56 sm:h-56 rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800">
+                <div className="relative mx-auto lg:mx-0 w-48 h-48 sm:w-56 sm:h-56 rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800 group">
                   <img
                     src={founderImage}
                     alt={founderName}
                     className="w-full h-full object-cover object-top"
                   />
+                  {admin && (
+                    <Link
+                      href="/admin/content#founder"
+                      className="absolute top-3 right-3 px-2.5 py-1 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-bold shadow-lg transition-all flex items-center gap-1 z-20 hover:scale-105"
+                      title="Update Founder Photo"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>Edit</span>
+                    </Link>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
                   <div className="absolute bottom-3 left-3 right-3 text-center">
                     <span className="inline-block px-3 py-1 rounded-full bg-brand-600/90 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider shadow-sm">

@@ -44,6 +44,21 @@ export function AdminLayoutClient({ children, adminUser }: AdminLayoutClientProp
     return <>{children}</>;
   }
 
+  // If not authenticated, redirect to login
+  if (!adminUser) {
+    if (typeof window !== "undefined") {
+      router.replace("/admin/login");
+    }
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-slate-300">Redirecting to admin login...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });

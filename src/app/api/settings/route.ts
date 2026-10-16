@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin, logAdminActivity } from "@/lib/auth";
 
@@ -45,6 +46,14 @@ async function handleUpdateSettings(req: Request) {
     }
 
     await logAdminActivity(admin, "UPDATE_STORE_SETTINGS", "SETTINGS", "store", body);
+
+    // Revalidate frontend pages that use store settings
+    try {
+      revalidatePath("/about");
+      revalidatePath("/");
+      revalidatePath("/shop");
+      revalidatePath("/contact");
+    } catch {}
 
     return NextResponse.json({ success: true, message: "Settings saved successfully" });
   } catch (error) {

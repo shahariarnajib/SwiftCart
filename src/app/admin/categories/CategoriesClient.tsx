@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
-import { Plus, Edit, Trash2, Layers, AlertCircle, X, Check } from "lucide-react";
+import { Plus, Edit, Trash2, Layers, AlertCircle, X, Check, UploadCloud, Loader2 } from "lucide-react";
 import { slugify } from "@/lib/format";
 
 interface CategoryItem {
@@ -27,6 +27,9 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
   const [formImage, setFormImage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openAddModal = () => {
     setEditingCategory(null);
@@ -35,6 +38,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
     setFormDesc("");
     setFormImage("");
     setError(null);
+    setUploadError(null);
     setModalOpen(true);
   };
 
@@ -45,7 +49,44 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
     setFormDesc(cat.description || "");
     setFormImage(cat.image || "");
     setError(null);
+    setUploadError(null);
     setModalOpen(true);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingImage(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", files[0]);
+      formData.append("bucket", "category-images");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload category image");
+      }
+
+      const uploadedUrl = data.url || data.urls?.[0];
+      if (uploadedUrl) {
+        setFormImage(uploadedUrl);
+      }
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to upload image");
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -244,13 +285,65 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Image URL</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Category Image</label>
                 <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+
+                {uploadError && (
+                  <p className="text-xs text-rose-600 mb-2">{uploadError}</p>
+                )}
+
+                {formImage ? (
+                  <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 mb-2 bg-slate-100 group">
+                    <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingImage}
+                        className="px-2.5 py-1 rounded-lg bg-white text-slate-900 text-xs font-bold shadow-xs hover:bg-slate-100"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormImage("")}
+                        className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-xs font-bold shadow-xs hover:bg-rose-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                    className="w-full border-2 border-dashed border-slate-200 hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 mb-2 hover:bg-slate-50"
+                  >
+                    {isUploadingImage ? (
+                      <Loader2 className="w-5 h-5 text-brand-600 animate-spin" />
+                    ) : (
+                      <>
+                        <UploadCloud className="w-5 h-5 text-brand-600" />
+                        <span className="text-xs font-bold text-slate-700">Click to upload category image</span>
+                        <span className="text-[10px] text-slate-400">JPG, PNG, WEBP, SVG (Max 5MB)</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                <input
+                  type="text"
+                  placeholder="Or paste image URL (https://... or /uploads/...)"
                   value={formImage}
                   onChange={(e) => setFormImage(e.target.value)}
-                  className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-brand-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-900 focus:outline-none focus:border-brand-500 font-mono"
                 />
               </div>
 

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Save, CheckCircle2, AlertCircle, Store, Truck, Phone, Settings, Lock, Key, ShieldCheck, Share2, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { Save, CheckCircle2, AlertCircle, Store, Truck, Phone, Settings, Lock, Key, ShieldCheck, Share2, ExternalLink, User } from "lucide-react";
 import { SOCIAL_PLATFORMS, SocialIcon, SocialPlatformKey, formatSocialUrl } from "@/components/SocialIcons";
 
 interface SettingsMap {
@@ -126,6 +127,25 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsM
       )}
 
       <div className="space-y-6">
+        {/* Shortcut to Founder Profile in Website Content */}
+        <div className="bg-gradient-to-r from-brand-50 to-indigo-50/50 border border-brand-200/80 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-xs font-black uppercase tracking-wider text-brand-700 block">
+              Founder Profile & Story (About Us Page)
+            </span>
+            <p className="text-xs text-slate-600">
+              Manage the founder portrait photo, leadership bio, quote, and company origin narrative shown on the public About Us page.
+            </p>
+          </div>
+          <Link
+            href="/admin/content#founder"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-600/20 transition-all shrink-0 self-start sm:self-auto hover:scale-105 active:scale-95"
+          >
+            <span>Edit Founder Profile & Photo</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
         {/* Brand Information */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">

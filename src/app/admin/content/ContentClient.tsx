@@ -133,6 +133,7 @@ export function ContentClient({
     try {
       const formData = new FormData();
       formData.append("file", files[0]);
+      formData.append("bucket", "banners");
 
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -205,6 +206,7 @@ export function ContentClient({
     try {
       const formData = new FormData();
       formData.append("file", files[0]);
+      formData.append("bucket", "banners");
 
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -347,14 +349,32 @@ export function ContentClient({
 
   return (
     <div className="space-y-8 max-w-5xl">
-      {/* Title */}
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-          Website Content & Banners
-        </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Manage homepage promotional banners, hero sliders, announcement bars, and policy pages
-        </p>
+      {/* Title & Quick Jump Links */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+            Website Content & Banners
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage homepage promotional banners, hero sliders, announcement bars, and founder story
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href="#banners"
+            className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-brand-600 text-xs font-bold shadow-xs hover:border-brand-200 transition-colors"
+          >
+            Hero Banners
+          </a>
+          <a
+            href="#founder"
+            className="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-600/20 transition-all flex items-center gap-1.5"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Founder & About Us</span>
+          </a>
+        </div>
       </div>
 
       {toastMsg && (
@@ -397,7 +417,7 @@ export function ContentClient({
       </div>
 
       {/* Hero Banners Section */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-6">
+      <div id="banners" className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-6 scroll-mt-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
@@ -482,7 +502,7 @@ export function ContentClient({
       </div>
 
       {/* Founder Profile & Brand Story (About Us Page) */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-6">
+      <div id="founder" className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-6 scroll-mt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
@@ -523,7 +543,7 @@ export function ContentClient({
               <input
                 ref={founderFileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,image/avif"
+                accept="image/*"
                 onChange={handleFounderImageUpload}
                 className="hidden"
               />
@@ -614,10 +634,10 @@ export function ContentClient({
                   Or specify photo URL directly
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={founderImage}
                   onChange={(e) => setFounderImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/... or custom URL"
+                  placeholder="https://images.unsplash.com/... or /uploads/photo.jpg"
                   className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-800 bg-slate-50 focus:bg-white"
                 />
               </div>
@@ -923,7 +943,7 @@ export function ContentClient({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,image/avif"
+                  accept="image/*"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
@@ -1034,10 +1054,10 @@ export function ContentClient({
                     </summary>
                     <div className="mt-2">
                       <input
-                        type="url"
+                        type="text"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://images.unsplash.com/... or custom URL"
+                        placeholder="https://images.unsplash.com/... or /uploads/banner.jpg"
                         className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-mono text-slate-800 bg-white"
                       />
                     </div>

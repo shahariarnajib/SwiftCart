@@ -1,6 +1,7 @@
 import React from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/auth";
 import { ProductForm } from "@/app/admin/products/ProductForm";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,11 @@ export default async function EditProductPage({
 }: {
   params: { id: string };
 }) {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    redirect("/admin/login");
+  }
+
   const [product, categories] = await Promise.all([
     prisma.product.findUnique({
       where: { id: params.id },
