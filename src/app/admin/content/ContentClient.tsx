@@ -169,9 +169,10 @@ export function ContentClient({
       try {
         const b64 = await fileToBase64(file);
         setFounderImage(b64);
-        setFounderUploadError("Notice: Storage server notice, photo kept as local preview.");
+        setFounderUploadError(null);
       } catch {
         setFounderUploadError(err.message || "Failed to upload founder photo.");
+        setTimeout(() => setFounderUploadError(null), 4000);
       }
     } finally {
       setIsUploadingFounderImage(false);

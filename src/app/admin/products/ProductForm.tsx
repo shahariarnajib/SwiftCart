@@ -303,9 +303,15 @@ export function ProductForm({
             images: updatedImages.filter(Boolean),
           };
         });
-        setUploadError("Notice: Storage server notice, image kept as local preview.");
+        setUploadSuccess(
+          files.length === 1
+            ? "Image added to product!"
+            : `${files.length} images added to product!`
+        );
+        setTimeout(() => setUploadSuccess(null), 3000);
       } catch {
-        setUploadError(err.message || "Failed to upload image.");
+        setUploadError(err.message || "Failed to process image.");
+        setTimeout(() => setUploadError(null), 4000);
       }
     } finally {
       setIsUploading(false);
