@@ -45,7 +45,13 @@ export function getSafeImageUrl(
   if (!url || typeof url !== "string") return fallback;
   const trimmed = url.trim();
   if (!trimmed) return fallback;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+  // Accept valid remote URLs, local paths, and base64 data URIs
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("data:image/")
+  ) {
     return trimmed;
   }
   return fallback;
