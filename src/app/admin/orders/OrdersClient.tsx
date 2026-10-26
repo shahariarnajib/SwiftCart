@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { formatCurrency, formatDate, ORDER_STATUS_CONFIG } from "@/lib/format";
+import { formatCurrency, formatDate, ORDER_STATUS_CONFIG, getSafeImageUrl } from "@/lib/format";
 import {
   Search,
   Eye,
@@ -17,6 +17,7 @@ import {
   Truck,
   RotateCcw,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 
 interface OrderItemData {
@@ -65,6 +66,32 @@ export function OrdersClient({
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusSuccessMsg, setStatusSuccessMsg] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchOrders = async (showLoading = true) => {
+    if (showLoading) setIsRefreshing(true);
+    try {
+      const res = await fetch("/api/orders");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setOrders(data);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to refresh orders", e);
+    } finally {
+      if (showLoading) setIsRefreshing(false);
+    }
+  };
+
+  // Poll for new orders every 20 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrders(false);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Filter orders
   const filteredOrders = orders.filter((ord) => {
@@ -145,6 +172,16 @@ export function OrdersClient({
             Review incoming orders, verify customer addresses, and update parcel delivery statuses
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => fetchOrders(true)}
+          disabled={isRefreshing}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all shadow-xs self-start sm:self-auto disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand-600" : ""}`} />
+          <span>{isRefreshing ? "Refreshing..." : "Refresh Orders"}</span>
+        </button>
       </div>
 
       {statusSuccessMsg && (
@@ -372,7 +409,7 @@ export function OrdersClient({
                     <div className="flex items-center gap-3">
                       <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 shrink-0">
                         <Image
-                          src={item.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=200&q=80"}
+                          src={getSafeImageUrl(item.image)}
                           alt={item.productName}
                           fill
                           className="object-cover"

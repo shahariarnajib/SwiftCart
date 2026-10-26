@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentAdmin } from "@/lib/auth";
+import { getCurrentAdmin, logAdminActivity } from "@/lib/auth";
 import { slugify } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -23,7 +26,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const admin = await getCurrentAdmin();
+    const admin = await getCurrentAdmin(req);
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -52,7 +55,18 @@ export async function POST(req: Request) {
         orderIndex: orderIndex ? parseInt(orderIndex, 10) : 0,
         isVisible: isVisible !== undefined ? Boolean(isVisible) : true,
       },
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
     });
+
+    await logAdminActivity(admin, "CREATE_CATEGORY", "CATEGORY", category.id, { name: category.name });
+
+    revalidatePath("/");
+    revalidatePath("/shop");
+    revalidatePath("/admin/categories");
 
     return NextResponse.json(category, { status: 201 });
   } catch (error) {

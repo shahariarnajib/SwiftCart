@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, getSafeImageUrl } from "@/lib/format";
 import {
   Plus,
   Search,
@@ -201,10 +201,7 @@ export function ProductsClient({
                 </tr>
               ) : (
                 pagedProducts.map((p) => {
-                  const primaryImg =
-                    p.images.length > 0
-                      ? p.images[0].url
-                      : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80";
+                  const primaryImg = getSafeImageUrl(p.images?.[0]?.url);
 
                   const isOut = p.stock <= 0;
                   const isLow = p.stock > 0 && p.stock <= 5;

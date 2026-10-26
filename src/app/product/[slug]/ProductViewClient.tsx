@@ -16,7 +16,7 @@ import {
   Share2,
   MessageCircle,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, getSafeImageUrl } from "@/lib/format";
 import { useCart } from "@/context/CartContext";
 
 interface ProductViewProps {
@@ -62,7 +62,7 @@ export function ProductViewClient({ product }: ProductViewProps) {
 
   const images =
     product.images.length > 0
-      ? product.images.map((img) => img.url)
+      ? product.images.map((img) => getSafeImageUrl(img.url))
       : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80"];
 
   let parsedSpecs: Record<string, string> = {};

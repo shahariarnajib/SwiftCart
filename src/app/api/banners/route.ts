@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin, logAdminActivity } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
@@ -26,7 +29,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const admin = await getCurrentAdmin();
+    const admin = await getCurrentAdmin(req);
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -67,11 +70,14 @@ export async function POST(req: Request) {
       },
     });
 
-    await logAdminActivity(admin, "CREATE_BANNER", "BANNER", banner.id, { title });
+    await logAdminActivity(admin, "CREATE_BANNER", "BANNER", banner.id, { title: banner.title });
+
+    revalidatePath("/");
+    revalidatePath("/admin/content");
 
     return NextResponse.json(banner, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to create banner:", error);
-    return NextResponse.json({ error: "Failed to create banner" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Failed to create banner" }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { getSafeImageUrl } from "@/lib/format";
 import {
   ChevronLeft,
   ChevronRight,
@@ -129,7 +130,7 @@ export function HeroSlider({ banners }: { banners?: BannerSlide[] }) {
             >
               {/* Background Image */}
               <img
-                src={slide.imageUrl}
+                src={getSafeImageUrl(slide.imageUrl, "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1600&q=85")}
                 alt={slide.title || "Swift Cart Promotional Banner"}
                 className="w-full h-full object-cover object-center transform scale-100 transition-transform duration-7000 ease-out"
                 style={{

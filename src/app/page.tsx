@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
+import { getSafeImageUrl } from "@/lib/format";
 import { ProductCard } from "@/components/ProductCard";
 import { HeroSlider } from "@/components/HeroSlider";
 import {
@@ -17,7 +18,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-export const revalidate = 60; // Revalidate every 60 seconds
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 async function getHomeData() {
   const [categories, featuredProducts, newArrivals, heroBanners] = await Promise.all([
@@ -77,10 +79,10 @@ export default async function HomePage() {
             </h2>
           </div>
           <Link
-            href="/shop"
+            href="/collections"
             className="text-sm font-bold text-slate-700 hover:text-brand-600 inline-flex items-center gap-1 group transition-colors"
           >
-            <span>Browse All Categories</span>
+            <span>Browse All Collections</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -94,7 +96,7 @@ export default async function HomePage() {
             >
               <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-white">
                 <Image
-                  src={cat.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80"}
+                  src={getSafeImageUrl(cat.image)}
                   alt={cat.name}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"

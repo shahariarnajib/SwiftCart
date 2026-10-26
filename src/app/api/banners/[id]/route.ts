@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin, logAdminActivity } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const admin = await getCurrentAdmin();
+    const admin = await getCurrentAdmin(req);
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -42,10 +45,13 @@ export async function PUT(
 
     await logAdminActivity(admin, "UPDATE_BANNER", "BANNER", params.id, { title: updated.title });
 
+    revalidatePath("/");
+    revalidatePath("/admin/content");
+
     return NextResponse.json(updated);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to update banner:", error);
-    return NextResponse.json({ error: "Failed to update banner" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Failed to update banner" }, { status: 500 });
   }
 }
 
@@ -54,7 +60,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const admin = await getCurrentAdmin();
+    const admin = await getCurrentAdmin(req);
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -65,9 +71,12 @@ export async function DELETE(
 
     await logAdminActivity(admin, "DELETE_BANNER", "BANNER", params.id, { title: banner.title });
 
+    revalidatePath("/");
+    revalidatePath("/admin/content");
+
     return NextResponse.json({ success: true, message: "Banner deleted successfully." });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to delete banner:", error);
-    return NextResponse.json({ error: "Failed to delete banner" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Failed to delete banner" }, { status: 500 });
   }
 }

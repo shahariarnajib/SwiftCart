@@ -39,7 +39,7 @@ type StorageBucket = "product-images" | "category-images" | "banners" | "invoice
 export async function POST(req: Request) {
   try {
     // 1. Authenticate admin via cookie or bearer token
-    let admin = await getCurrentAdmin();
+    let admin = await getCurrentAdmin(req);
     if (!admin) {
       const authHeader = req.headers.get("authorization");
       if (authHeader && authHeader.startsWith("Bearer ")) {

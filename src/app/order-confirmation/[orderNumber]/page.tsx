@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate, ORDER_STATUS_CONFIG } from "@/lib/format";
+import { formatCurrency, formatDate, ORDER_STATUS_CONFIG, getSafeImageUrl } from "@/lib/format";
 import {
   CheckCircle2,
   Package,
@@ -107,7 +107,7 @@ export default async function OrderConfirmationPage({
               <div key={item.id} className="py-4 flex items-center gap-4">
                 <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-50 shrink-0 border border-slate-200">
                   <Image
-                    src={item.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80"}
+                    src={getSafeImageUrl(item.image)}
                     alt={item.productName}
                     fill
                     className="object-cover"

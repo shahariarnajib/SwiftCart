@@ -209,6 +209,16 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                     </span>
                   </Link>
                 ))}
+
+                <div className="pt-2">
+                  <Link
+                    href="/collections"
+                    className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-brand-50/60 transition-colors"
+                  >
+                    <span>View All Collections</span>
+                    <span>→</span>
+                  </Link>
+                </div>
               </div>
 
               {/* Stock Filter */}

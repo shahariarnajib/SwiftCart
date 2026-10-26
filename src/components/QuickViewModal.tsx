@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { X, ShoppingBag, ArrowRight, Check } from "lucide-react";
 import { ProductItem } from "./ProductCard";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, getSafeImageUrl } from "@/lib/format";
 import { useCart } from "@/context/CartContext";
 
 export function QuickViewModal({
@@ -35,7 +35,7 @@ export function QuickViewModal({
 
   const images =
     product.images && product.images.length > 0
-      ? product.images.map((img) => img.url)
+      ? product.images.map((img) => getSafeImageUrl(img.url))
       : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80"];
 
   const handleAddToCart = () => {

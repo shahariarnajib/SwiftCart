@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, getSafeImageUrl } from "@/lib/format";
 import {
   Trash2,
   ArrowRight,
@@ -100,7 +100,7 @@ export default function CartPage() {
                       className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-50 shrink-0 border border-slate-200"
                     >
                       <Image
-                        src={item.image}
+                        src={getSafeImageUrl(item.image)}
                         alt={item.name}
                         fill
                         className="object-cover"

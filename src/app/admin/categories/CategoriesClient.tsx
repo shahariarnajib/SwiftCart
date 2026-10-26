@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { Plus, Edit, Trash2, Layers, AlertCircle, X, Check, UploadCloud, Loader2 } from "lucide-react";
-import { slugify } from "@/lib/format";
+import { slugify, getSafeImageUrl } from "@/lib/format";
 
 interface CategoryItem {
   id: string;
@@ -29,6 +29,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
   const [error, setError] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openAddModal = () => {
@@ -123,13 +124,18 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
 
       if (editingCategory) {
         setCategories((prev) =>
-          prev.map((c) => (c.id === editingCategory.id ? { ...c, ...data } : c))
+          prev.map((c) =>
+            c.id === editingCategory.id ? { ...c, ...data, _count: data._count || c._count } : c
+          )
         );
+        setToastMsg(`Category "${data.name}" updated successfully!`);
       } else {
-        setCategories((prev) => [...prev, { ...data, _count: { products: 0 } }]);
+        setCategories((prev) => [...prev, { ...data, _count: data._count || { products: 0 } }]);
+        setToastMsg(`Category "${data.name}" created successfully!`);
       }
 
       setModalOpen(false);
+      setTimeout(() => setToastMsg(null), 3000);
     } catch (err: any) {
       setError(err.message || "Failed to save category");
     } finally {
@@ -152,6 +158,8 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
         alert(data.error || "Failed to delete category");
       } else {
         setCategories((prev) => prev.filter((c) => c.id !== id));
+        setToastMsg(`Category "${name}" deleted.`);
+        setTimeout(() => setToastMsg(null), 3000);
       }
     } catch {
       alert("Error deleting category");
@@ -160,6 +168,12 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
 
   return (
     <div className="space-y-6">
+      {toastMsg && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+          <Check className="w-4 h-4 text-emerald-600" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -189,7 +203,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
             <div>
               <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 mb-4">
                 <Image
-                  src={cat.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80"}
+                  src={getSafeImageUrl(cat.image)}
                   alt={cat.name}
                   fill
                   className="object-cover"
@@ -300,7 +314,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
 
                 {formImage ? (
                   <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 mb-2 bg-slate-100 group">
-                    <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={getSafeImageUrl(formImage)} alt="Preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button
                         type="button"

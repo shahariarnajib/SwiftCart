@@ -27,10 +27,48 @@ export function verifyAdminToken(token: string): AdminPayload | null {
   }
 }
 
-export async function getCurrentAdmin(): Promise<AdminPayload | null> {
-  const cookieStore = cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return null;
+export async function getCurrentAdmin(req?: Request): Promise<AdminPayload | null> {
+  let token: string | undefined;
+
+  // 1. Try to read from Request header Authorization: Bearer <token>
+  if (req) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+  }
+
+  // 2. Try to read from cookies
+  if (!token) {
+    try {
+      const cookieStore = cookies();
+      token = cookieStore.get(COOKIE_NAME)?.value;
+    } catch {
+      // In contexts where cookies() is unavailable
+    }
+  }
+
+  // 3. Fallback for local development if not logged in
+  if (!token) {
+    if (process.env.NODE_ENV === "development") {
+      try {
+        const devAdmin = await prisma.adminUser.findFirst({
+          where: { role: "SUPER_ADMIN", status: "ACTIVE" },
+          select: { id: true, username: true, name: true, email: true, role: true },
+        });
+        if (devAdmin) return devAdmin;
+      } catch {
+        return {
+          id: "dev-admin",
+          username: "admin",
+          name: "Swift Cart Admin",
+          email: "admin@swiftcart.com",
+          role: "SUPER_ADMIN",
+        };
+      }
+    }
+    return null;
+  }
 
   const payload = verifyAdminToken(token);
   if (!payload) return null;
@@ -70,10 +108,19 @@ export async function logAdminActivity(
   details?: any
 ) {
   try {
+    let validAdminId: string | null = null;
+    if (admin && admin.id) {
+      const dbAdmin = await prisma.adminUser.findUnique({
+        where: { id: admin.id },
+        select: { id: true },
+      });
+      if (dbAdmin) validAdminId = dbAdmin.id;
+    }
+
     await prisma.adminActivityLog.create({
       data: {
-        adminId: admin.id,
-        adminName: admin.name || admin.username,
+        adminId: validAdminId,
+        adminName: admin.name || admin.username || "Admin",
         action,
         entity,
         entityId: entityId || null,

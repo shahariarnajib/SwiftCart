@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin, logAdminActivity } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   req: Request,
@@ -37,7 +40,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const admin = await getCurrentAdmin();
+    const admin = await getCurrentAdmin(req);
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -199,6 +202,11 @@ export async function PATCH(
       },
     });
 
+    try {
+      revalidatePath("/admin/orders");
+      revalidatePath("/admin");
+    } catch {}
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Failed to update order:", error);
@@ -211,7 +219,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const admin = await getCurrentAdmin();
+    const admin = await getCurrentAdmin(req);
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -247,6 +255,11 @@ export async function DELETE(
       order.id,
       { orderNumber: order.orderNumber, total: order.total }
     );
+
+    try {
+      revalidatePath("/admin/orders");
+      revalidatePath("/admin");
+    } catch {}
 
     return NextResponse.json({ success: true, message: `Order ${order.orderNumber} deleted successfully.` });
   } catch (error) {

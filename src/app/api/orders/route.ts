@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
-    const admin = await getCurrentAdmin();
+    const admin = await getCurrentAdmin(req);
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -221,7 +224,11 @@ export async function POST(req: Request) {
           nextNumber = parsed + 1;
         }
       }
-      const orderNumber = `SC-${nextNumber}`;
+      let orderNumber = `SC-${nextNumber}`;
+      while (await tx.order.findUnique({ where: { orderNumber } })) {
+        nextNumber++;
+        orderNumber = `SC-${nextNumber}`;
+      }
 
       // 4. Upsert Customer Record
       let customer = await tx.customer.findUnique({
@@ -307,6 +314,12 @@ export async function POST(req: Request) {
 
       return order;
     });
+
+    try {
+      revalidatePath("/admin/orders");
+      revalidatePath("/admin");
+      revalidatePath("/admin/inventory");
+    } catch {}
 
     return NextResponse.json(result, { status: 201 });
   } catch (error: any) {

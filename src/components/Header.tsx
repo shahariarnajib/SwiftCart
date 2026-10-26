@@ -141,12 +141,13 @@ export function Header() {
 
                 <div
                   onMouseLeave={() => setCategoriesOpen(false)}
-                  className={`absolute top-full left-0 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 transition-all duration-200 ${
+                  className={`absolute top-full left-0 w-72 max-h-[460px] overflow-y-auto bg-white rounded-2xl shadow-xl border border-slate-100 py-3 transition-all duration-200 ${
                     categoriesOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2 pointer-events-none"
                   }`}
                 >
-                  <div className="px-4 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Browse Categories
+                  <div className="px-4 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Browse Categories</span>
+                    <span className="text-[10px] text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">{categories.length}</span>
                   </div>
                   {categories.map((cat) => (
                     <Link
@@ -157,10 +158,17 @@ export function Header() {
                       {cat.name}
                     </Link>
                   ))}
-                  <div className="border-t border-slate-100 mt-2 pt-2 px-4">
+                  <div className="border-t border-slate-100 mt-2 pt-2 px-4 space-y-1">
+                    <Link
+                      href="/collections"
+                      className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center justify-between py-1"
+                    >
+                      <span>All Collections</span>
+                      <span>→</span>
+                    </Link>
                     <Link
                       href="/shop"
-                      className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center justify-between"
+                      className="text-xs font-bold text-slate-500 hover:text-brand-600 flex items-center justify-between py-1"
                     >
                       <span>View All Products</span>
                       <span>→</span>
@@ -296,6 +304,12 @@ export function Header() {
                 className="block px-3 py-2.5 rounded-xl font-semibold text-slate-800 hover:bg-brand-50 hover:text-brand-600 transition-colors"
               >
                 Shop All Products
+              </Link>
+              <Link
+                href="/collections"
+                className="block px-3 py-2.5 rounded-xl font-semibold text-slate-800 hover:bg-brand-50 hover:text-brand-600 transition-colors"
+              >
+                All Collections
               </Link>
 
               <div className="pt-2 pb-1">

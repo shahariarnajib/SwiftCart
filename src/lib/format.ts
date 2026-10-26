@@ -38,6 +38,19 @@ export function slugify(text: string): string {
     .replace(/-+$/, ""); // Trim - from end of text
 }
 
+export function getSafeImageUrl(
+  url: string | null | undefined,
+  fallback = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80"
+): string {
+  if (!url || typeof url !== "string") return fallback;
+  const trimmed = url.trim();
+  if (!trimmed) return fallback;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  return fallback;
+}
+
 export const ORDER_STATUS_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; border: string }

@@ -327,15 +327,9 @@ export function ContentClient({
     try {
       let finalBannerImage = imageUrl.trim();
       if (finalBannerImage.startsWith("blob:")) {
-        try {
-          const blobRes = await fetch(finalBannerImage);
-          const blobData = await blobRes.blob();
-          finalBannerImage = await fileToBase64(
-            new File([blobData], "banner.jpg", { type: blobData.type || "image/jpeg" })
-          );
-        } catch (b64Err) {
-          console.error("Failed to convert banner blob to base64:", b64Err);
-        }
+        setErrorMsg("Banner image is still uploading. Please wait a moment.");
+        setIsSubmitting(false);
+        return;
       }
 
       const payload = {
@@ -385,8 +379,13 @@ export function ContentClient({
 
     try {
       const res = await fetch(`/api/banners/${b.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setBanners((prev) => prev.filter((item) => item.id !== b.id));
+        setToastMsg("Banner deleted successfully!");
+        setTimeout(() => setToastMsg(null), 3000);
+      } else {
+        alert(data.error || "Failed to delete banner");
       }
     } catch {
       alert("Error deleting banner");

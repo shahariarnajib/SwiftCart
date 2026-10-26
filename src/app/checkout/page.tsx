@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, getSafeImageUrl } from "@/lib/format";
 import {
   ShieldCheck,
   Truck,
@@ -151,7 +151,7 @@ export default function CheckoutPage() {
         deliveryZone,
         couponCode: appliedCoupon?.code || null,
         items: items.map((item) => ({
-          productId: item.productId,
+          productId: item.productId || item.id,
           quantity: item.quantity,
           image: item.image,
         })),
@@ -455,7 +455,7 @@ export default function CheckoutPage() {
                 {items.map((it) => (
                   <div key={it.productId} className="flex items-center gap-3 py-2 border-b border-slate-50">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-50 shrink-0 border border-slate-200">
-                      <Image src={it.image} alt={it.name} fill className="object-cover" />
+                      <Image src={getSafeImageUrl(it.image)} alt={it.name} fill className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-slate-800 truncate">{it.name}</p>

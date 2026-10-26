@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ShoppingBag, Eye, Check } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, getSafeImageUrl } from "@/lib/format";
 import { useCart } from "@/context/CartContext";
 import { QuickViewModal } from "./QuickViewModal";
 
@@ -40,10 +40,7 @@ export function ProductCard({ product }: { product: ProductItem }) {
     ? Math.round(((product.regularPrice - product.salePrice!) / product.regularPrice) * 100)
     : 0;
 
-  const primaryImage =
-    product.images && product.images.length > 0
-      ? product.images[0].url
-      : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80";
+  const primaryImage = getSafeImageUrl(product.images?.[0]?.url);
 
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
