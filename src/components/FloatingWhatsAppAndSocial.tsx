@@ -35,7 +35,7 @@ export function FloatingWhatsAppAndSocial() {
 
   return (
     <div
-      className="fixed bottom-20 right-5 sm:bottom-20 sm:right-6 z-50 flex flex-col items-end gap-2.5 print:hidden select-none"
+      className="fixed bottom-24 right-5 sm:bottom-24 sm:right-6 z-50 flex flex-col items-end gap-2.5 print:hidden select-none"
       aria-label="WhatsApp customer support"
     >
       {/* WhatsApp Floating Button */}

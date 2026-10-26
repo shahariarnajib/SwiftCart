@@ -135,3 +135,14 @@
 .corner-light-bl::after { bottom: -2px; left: -2px; }
 .corner-light-br::after { bottom: -2px; right: -2px; }
 
+/* Hide Netlify badge widget */
+[data-overlay-id="netlify-badge"],
+iframe[title="Netlify Badge"],
+#netlify-badge-container,
+.netlify-badge,
+a[href*="netlify.com"][style*="position: fixed"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
