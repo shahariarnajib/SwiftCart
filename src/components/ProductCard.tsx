@@ -135,7 +135,7 @@ export function ProductCard({ product }: { product: ProductItem }) {
         </Link>
 
         {/* Card Content */}
-        <div className="p-4 sm:p-5 flex flex-col flex-1">
+        <div className="p-3 sm:p-5 flex flex-col flex-1">
           {/* Category */}
           {product.category && (
             <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-1">

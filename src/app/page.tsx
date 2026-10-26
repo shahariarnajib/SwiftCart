@@ -139,7 +139,7 @@ export default async function HomePage() {
             No featured products listed yet. Add products from your admin panel and toggle &ldquo;Feature on Homepage&rdquo;.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {featuredProducts.map((prod) => (
               <ProductCard key={prod.id} product={prod} />
             ))}
@@ -221,7 +221,7 @@ export default async function HomePage() {
             No new arrival products listed yet. Add products from your admin panel and toggle &ldquo;New Arrival&rdquo;.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {newArrivals.map((prod) => (
               <ProductCard key={prod.id} product={prod} />
             ))}
